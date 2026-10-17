@@ -1,0 +1,12 @@
+.env
+.env.local
+node_modules/
+__pycache__/
+.venv/
+.venv312/
+*.py[cod]
+dist/
+*.log
+*.tsbuildinfo
+*.db
+.DS_Store
