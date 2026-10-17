@@ -6,7 +6,7 @@ State is deliberately in memory so the prototype remains usable without a databa
 
 from __future__ import annotations
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 
 try:  # Support both ``backend.main`` and ``main`` when run from this folder.
     from .models import (
@@ -22,6 +22,8 @@ try:  # Support both ``backend.main`` and ``main`` when run from this folder.
         Scenario,
         StatusResponse,
         StatusUpdateRequest,
+        MutationRecord,
+        SyncSummary,
     )
     from .seed import SCENARIOS
     from .services import BridgeStore
@@ -39,6 +41,8 @@ except ImportError:  # pragma: no cover - only used by the direct uvicorn entryp
         Scenario,
         StatusResponse,
         StatusUpdateRequest,
+        MutationRecord,
+        SyncSummary,
     )
     from seed import SCENARIOS  # type: ignore[no-redef]
     from services import BridgeStore  # type: ignore[no-redef]
@@ -91,7 +95,10 @@ def analyze_bridge(request: AnalyzeRequest) -> AnalysisResponse:
 def approve_bridge(request: ApprovalRequest) -> ApprovalResponse:
     if request.analysis_id not in store.analyses:
         raise HTTPException(status_code=404, detail=f"Unknown analysis: {request.analysis_id}")
-    return store.approve(request.analysis_id, request.decision, request.approver, request.note)
+    try:
+        return store.approve(request.analysis_id, request.decision, request.approver, request.note)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @app.post("/api/bridge/checklist", response_model=ChecklistResponse)
@@ -104,6 +111,8 @@ def bridge_checklist(request: ChecklistRequest) -> ChecklistResponse:
             raise HTTPException(status_code=404, detail=f"Unknown analysis: {request.analysis_id}")
         bridge_id = bridge_id or analysis.bridge_id
         scenario_id = scenario_id or analysis.scenario_id
+        if analysis.status != "approved":
+            raise HTTPException(status_code=409, detail="Checklist is available only after approval")
     if bridge_id and bridge_id in store.parsed:
         scenario_id = scenario_id or store.parsed[bridge_id].scenario_id
     if not bridge_id or not scenario_id:
@@ -124,12 +133,37 @@ def update_bridge_status(request: StatusUpdateRequest) -> StatusResponse:
         bridge_id = bridge_id or analysis.bridge_id
     if not bridge_id:
         raise HTTPException(status_code=422, detail="Provide bridge_id or analysis_id")
+    if bridge_id not in store.parsed:
+        raise HTTPException(status_code=404, detail=f"Unknown bridge: {bridge_id}")
+    current = store.statuses.get(bridge_id)
+    allowed = {
+        "parsed": {"parsed", "analyzed", "pending_approval", "blocked"},
+        "analyzed": {"pending_approval", "approved", "blocked"},
+        "pending_approval": {"approved", "blocked"},
+        "approved": {"in_progress", "blocked"},
+        "in_progress": {"resolved", "blocked"},
+        "blocked": {"pending_approval", "approved", "in_progress"},
+        "received": {"parsed"},
+        "resolved": set(),
+    }
+    if current and request.status != current.status and request.status not in allowed.get(current.status, set()):
+        raise HTTPException(status_code=409, detail=f"Cannot transition status from {current.status} to {request.status}")
     status = StatusResponse(
         bridge_id=bridge_id,
         analysis_id=analysis_id,
         status=request.status,
         note=request.note,
         updated_by=request.updated_by,
+        updated_at=__import__("datetime").datetime.now(__import__("datetime").timezone.utc),
     )
+    status = store._stamp("status", bridge_id, "update", status)
     store.statuses[bridge_id] = status
     return status
+
+
+@app.get("/api/sync/mutations", response_model=SyncSummary)
+def sync_mutations(pending_only: bool = Query(True), limit: int = Query(100, ge=1, le=500)) -> SyncSummary:
+    mutations = store.mutations[-limit:]
+    if pending_only:
+        mutations = [mutation for mutation in mutations if mutation.sync_status == "pending"]
+    return SyncSummary(pending=sum(m.sync_status == "pending" for m in store.mutations), total=len(store.mutations), mutations=mutations)

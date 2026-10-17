@@ -13,4 +13,6 @@ uvicorn backend.main:app --reload
 ```
 
 The API exposes `/health`, `/api/scenarios`, and the parse/analyze/approve/checklist
-workflow under `/api/bridge`.
+workflow under `/api/bridge`. Workflow responses carry `version`, UTC `updated_at`,
+`is_deleted`, and `sync_status` metadata. `GET /api/sync/mutations` returns the
+append-only in-memory outbox (use `?pending_only=false` for the full log).
