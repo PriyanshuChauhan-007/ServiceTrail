@@ -14,8 +14,11 @@ try:  # Support both ``backend.main`` and ``main`` when run from this folder.
         AnalyzeRequest,
         ApprovalRequest,
         ApprovalResponse,
+        BridgeHistory,
         ChecklistRequest,
         ChecklistResponse,
+        ChecklistItemUpdateRequest,
+        DashboardSummary,
         HealthResponse,
         ParseRequest,
         ParsedEvent,
@@ -33,8 +36,11 @@ except ImportError:  # pragma: no cover - only used by the direct uvicorn entryp
         AnalyzeRequest,
         ApprovalRequest,
         ApprovalResponse,
+        BridgeHistory,
         ChecklistRequest,
         ChecklistResponse,
+        ChecklistItemUpdateRequest,
+        DashboardSummary,
         HealthResponse,
         ParseRequest,
         ParsedEvent,
@@ -122,6 +128,16 @@ def bridge_checklist(request: ChecklistRequest) -> ChecklistResponse:
     return store.checklist(bridge_id, scenario_id)
 
 
+@app.patch("/api/bridge/checklist/{bridge_id}", response_model=ChecklistResponse)
+def update_checklist_item(bridge_id: str, request: ChecklistItemUpdateRequest) -> ChecklistResponse:
+    if bridge_id not in store.parsed:
+        raise HTTPException(status_code=404, detail=f"Unknown bridge: {bridge_id}")
+    try:
+        return store.update_checklist_item(bridge_id, request.item_id, request.completed, request.notes)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @app.patch("/api/bridge/status", response_model=StatusResponse)
 def update_bridge_status(request: StatusUpdateRequest) -> StatusResponse:
     bridge_id = request.bridge_id
@@ -135,6 +151,10 @@ def update_bridge_status(request: StatusUpdateRequest) -> StatusResponse:
         raise HTTPException(status_code=422, detail="Provide bridge_id or analysis_id")
     if bridge_id not in store.parsed:
         raise HTTPException(status_code=404, detail=f"Unknown bridge: {bridge_id}")
+    if analysis_id is None:
+        matching_analysis = [item for item in store.analyses.values() if item.bridge_id == bridge_id]
+        if matching_analysis:
+            analysis_id = matching_analysis[-1].analysis_id
     current = store.statuses.get(bridge_id)
     allowed = {
         "parsed": {"parsed", "analyzed", "pending_approval", "blocked"},
@@ -159,6 +179,18 @@ def update_bridge_status(request: StatusUpdateRequest) -> StatusResponse:
     status = store._stamp("status", bridge_id, "update", status)
     store.statuses[bridge_id] = status
     return status
+
+
+@app.get("/api/bridge/history", response_model=list[BridgeHistory])
+def bridge_history(
+    bridge_id: str | None = Query(None), limit: int = Query(100, ge=1, le=500)
+) -> list[BridgeHistory]:
+    return store.history(bridge_id=bridge_id, limit=limit)
+
+
+@app.get("/api/dashboard/summary", response_model=DashboardSummary)
+def dashboard_summary() -> DashboardSummary:
+    return store.dashboard_summary()
 
 
 @app.get("/api/sync/mutations", response_model=SyncSummary)

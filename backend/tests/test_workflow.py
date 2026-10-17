@@ -50,3 +50,75 @@ def test_request_changes_requires_note_and_invalid_decision_transition():
     assert noted.status_code == 200
     duplicate = client.post("/api/bridge/approve", json={"analysis_id": analysis["analysis_id"], "decision": "approved", "approver": "Lead"})
     assert duplicate.status_code == 409
+
+
+def test_history_and_summary_reflect_full_lifecycle_and_mutation_metadata():
+    parsed = client.post(
+        "/api/bridge/parse",
+        json={"text": "Press-07 stopped with a hydraulic alarm at Bay 3", "scenario_id": "cnc_press_breakdown"},
+    ).json()
+    bridge_id = parsed["bridge_id"]
+    before_analysis = client.get("/api/dashboard/summary").json()
+    assert before_analysis["total_bridges"] == 1
+    assert before_analysis["status_counts"] == {"parsed": 1}
+
+    analysis = client.post("/api/bridge/analyze", json={"bridge_id": bridge_id}).json()
+    assert client.get("/api/dashboard/summary").json()["pending_approvals"] == 1
+    approved = client.post(
+        "/api/bridge/approve",
+        json={"analysis_id": analysis["analysis_id"], "decision": "approved", "approver": "shift lead"},
+    )
+    assert approved.status_code == 200
+    checklist = client.post("/api/bridge/checklist", json={"analysis_id": analysis["analysis_id"]}).json()
+
+    updated = client.patch(
+        f"/api/bridge/checklist/{bridge_id}",
+        json={"item_id": checklist["items"][0]["id"], "completed": True, "notes": "Isolation verified"},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["items"][0]["completed"] is True
+    assert updated.json()["items"][0]["notes"] == "Isolation verified"
+
+    assert client.patch("/api/bridge/status", json={"bridge_id": bridge_id, "status": "in_progress"}).status_code == 200
+    assert client.patch("/api/bridge/status", json={"bridge_id": bridge_id, "status": "resolved"}).status_code == 200
+
+    history_response = client.get("/api/bridge/history", params={"bridge_id": bridge_id})
+    assert history_response.status_code == 200
+    history = history_response.json()
+    assert len(history) == 1
+    session = history[0]
+    assert session["parsed"]["bridge_id"] == bridge_id
+    assert session["analysis"]["analysis_id"] == analysis["analysis_id"]
+    assert session["approval"]["decision"] == "approved"
+    assert session["checklist"]["items"][0]["completed"] is True
+    assert session["status"]["status"] == "resolved"
+    assert {mutation["entity_type"] for mutation in session["mutations"]} >= {
+        "bridge",
+        "analysis",
+        "approval",
+        "checklist",
+        "status",
+    }
+
+    summary = client.get("/api/dashboard/summary").json()
+    assert summary["total_bridges"] == 1
+    assert summary["active_bridges"] == 0
+    assert summary["resolved_bridges"] == 1
+    assert summary["status_counts"]["resolved"] == 1
+    assert summary["total_checklist_items"] == 3
+    assert summary["completed_checklist_items"] == 1
+    assert summary["checklist_completion_rate"] == pytest.approx(1 / 3)
+
+
+def test_checklist_update_rejects_unknown_items_and_preserves_progress_on_read():
+    parsed = client.post("/api/bridge/parse", json={"text": "Water leak near school", "scenario_id": "water_main_break"}).json()
+    analysis = client.post("/api/bridge/analyze", json={"bridge_id": parsed["bridge_id"]}).json()
+    client.post("/api/bridge/approve", json={"analysis_id": analysis["analysis_id"], "decision": "approved", "approver": "field lead"})
+    checklist = client.post("/api/bridge/checklist", json={"analysis_id": analysis["analysis_id"]}).json()
+    unknown = client.patch(
+        f"/api/bridge/checklist/{parsed['bridge_id']}",
+        json={"item_id": "missing", "completed": True},
+    )
+    assert unknown.status_code == 404
+    repeat = client.post("/api/bridge/checklist", json={"analysis_id": analysis["analysis_id"]}).json()
+    assert repeat["items"] == checklist["items"]

@@ -9,4 +9,5 @@ dist/
 *.log
 *.tsbuildinfo
 *.db
+data/*.json
 .DS_Store

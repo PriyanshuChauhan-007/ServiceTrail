@@ -46,3 +46,21 @@ export type Analysis = {
 
 export type ChecklistItem = { id: string; label: string; owner: string; required: boolean; completed: boolean; notes: string | null }
 export type Checklist = { bridge_id: string; scenario_id: string; items: ChecklistItem[] }
+
+export type HistoryEntry = {
+  bridge_id: string
+  scenario_id: string
+  source_text: string
+  status: BridgeStatus | string
+  severity: Priority
+  asset_id: string | null
+  location: string | null
+  created_at: string
+  updated_at?: string
+  analysis_summary?: string
+}
+
+export type SyncSummary = {
+  pending: number
+  total: number
+}

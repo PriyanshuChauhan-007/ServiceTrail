@@ -25,3 +25,29 @@ button { cursor: pointer; }
 .json-disclosure { margin: 0 19px 16px; border: 1px solid #2a3749; border-radius: 5px; background: #0d141f; }.json-disclosure summary { cursor: pointer; color: #9db8e8; padding: 9px 10px; font-size: 10px; }.json-disclosure pre { max-height: 220px; overflow: auto; margin: 0; padding: 10px; border-top: 1px solid #26364b; color: #aebed3; font: 10px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; }
 .recommendation-panel input { color: #dce5f1; background: #0d141f; border: 1px solid #2c3a50; border-radius: 5px; padding: 9px 11px; font-size: 11px; min-width: 260px; }.recommendation-footer { align-items: center; }.approval-reason small { display: block; margin-top: 4px; }
 button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid #74a0ff; outline-offset: 2px; }
+.workspace-label { color: #e8edf5; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 8px; padding: 10px 0 8px; }
+.fixed-label { margin-left: auto; color: #718096; border: 1px solid #2c394c; border-radius: 3px; padding: 2px 4px; font-size: 8px; letter-spacing: .7px; }
+.sync-action, .sync-link { border: 0; background: transparent; color: #91a2b8; font-size: 10px; cursor: pointer; }
+.sync-action b { color: #c4d0df; font-weight: 600; margin-left: 7px; }
+.sync-action:hover, .sync-link:hover { color: #dce8fa; }
+.sync-action:disabled { cursor: wait; opacity: .65; }
+.sync-link { margin-left: auto; color: #84aaff; font-weight: 600; }
+.adapter-copy { color: #718198; font-size: 10px; line-height: 1.45; margin: 9px 19px 0; }
+.bridge-core small { color: #63748b; font-size: 9px; line-height: 1.4; max-width: 95px; text-align: center; margin-top: 12px; }
+.status-bars { padding: 11px 19px 19px; display: grid; gap: 10px; }
+.status-bar-row { display: grid; grid-template-columns: 108px 1fr 20px; gap: 9px; align-items: center; color: #8797ad; font-size: 9px; }
+.status-bar-row > b { color: #d6dfeb; font-size: 10px; text-align: right; }
+.status-bar { height: 6px; background: #202d40; border-radius: 4px; overflow: hidden; }
+.status-bar i { display: block; height: 100%; min-width: 0; border-radius: 4px; transition: width .25s ease; }
+.status-bar i.open { background: #dca63b; }.status-bar i.resolved { background: #4b83fa; }.status-bar i.blocked { background: #ec6a6d; }
+.recent-list { padding: 4px 17px 11px; }
+.recent-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 2px; border-bottom: 1px solid #202c3e; }
+.recent-row:last-child { border-bottom: 0; }
+.recent-row b, .recent-row small { display: block; }.recent-row b { color: #d2dce9; font-size: 10px; }.recent-row small { color: #718198; font-size: 9px; margin-top: 4px; }
+.history-source { border: 1px solid #26364b; background: #101a28; color: #a4b4c9; display: flex; align-items: center; gap: 8px; border-radius: 5px; padding: 10px 12px; margin-bottom: 14px; font-size: 10px; }
+.history-source small { color: #6e7f96; margin-left: 4px; }.history-source .sync-offline { flex: 0 0 auto; }
+.table-subcopy { display: block; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #718198; font-size: 9px; margin-top: 4px; }
+.row-action { border: 0; background: transparent; cursor: pointer; font-size: 9px; font-weight: 700; }
+.recommendation-panel { border-top: 1px solid #202d40; padding: 0 19px 18px; }.recommendation-panel .field-label { margin-left: 0; margin-right: 0; }
+.recommendation-panel p { color: #b8c5d6; font-size: 11px; line-height: 1.5; margin: 0 0 8px; }.recommendation-panel ul { padding-left: 17px; margin: 0 0 11px; color: #8fa1b7; font-size: 10px; line-height: 1.5; }.recommendation-panel li + li { margin-top: 4px; }
+.approval-reason { color: #d5b66e; background: #282319; border: 1px solid #4f4128; border-radius: 4px; padding: 8px; font-size: 9px; margin-bottom: 11px; }.recommendation-footer { display: flex; gap: 6px; }.recommendation-footer input { flex: 1; min-width: 150px !important; }.recommendation-footer .primary-button, .recommendation-footer .ghost-button { padding: 9px 10px; }

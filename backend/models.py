@@ -130,6 +130,12 @@ class ChecklistResponse(BaseModel):
     sync_status: Literal["pending", "synced", "conflict"] = "pending"
 
 
+class ChecklistItemUpdateRequest(BaseModel):
+    item_id: str = Field(min_length=1)
+    completed: bool
+    notes: str | None = None
+
+
 class StatusUpdateRequest(BaseModel):
     status: Literal[
         "received",
@@ -174,6 +180,39 @@ class SyncSummary(BaseModel):
     pending: int
     total: int
     mutations: list[MutationRecord] = Field(default_factory=list)
+
+
+class BridgeHistory(BaseModel):
+    """Current materialized state and mutation trail for one bridge session."""
+
+    bridge_id: str
+    scenario_id: str | None = None
+    source_text: str | None = None
+    parsed: ParsedEvent | None = None
+    analysis: AnalysisResponse | None = None
+    approval: ApprovalResponse | None = None
+    checklist: ChecklistResponse | None = None
+    status: StatusResponse | None = None
+    mutations: list[MutationRecord] = Field(default_factory=list)
+    updated_at: datetime
+
+
+class DashboardSummary(BaseModel):
+    """Small read model for an operator dashboard backed by live store state."""
+
+    generated_at: datetime
+    total_bridges: int
+    active_bridges: int
+    status_counts: dict[str, int] = Field(default_factory=dict)
+    pending_approvals: int
+    approved_bridges: int
+    in_progress_bridges: int
+    resolved_bridges: int
+    blocked_bridges: int
+    total_checklist_items: int
+    completed_checklist_items: int
+    checklist_completion_rate: float = Field(ge=0, le=1)
+    recent_activity: list[MutationRecord] = Field(default_factory=list)
 
 
 class HealthResponse(BaseModel):

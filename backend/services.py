@@ -1,4 +1,9 @@
-"""Deterministic parsing, analysis, and in-memory workflow state for OpsBridge."""
+"""Deterministic domain behavior and process-local workflow state for OpsBridge.
+
+The store is intentionally in memory: it gives the interactive prototype a real
+read/write backend without adding a database or network dependency. A restart
+resets prototype state; the mutation outbox remains available during a run.
+"""
 
 from __future__ import annotations
 
@@ -10,8 +15,10 @@ try:  # Support both ``backend.main`` and ``main`` when run from this folder.
     from .models import (
         AnalysisResponse,
         ApprovalResponse,
+        BridgeHistory,
         ChecklistItem,
         ChecklistResponse,
+        DashboardSummary,
         ParsedEvent,
         StatusResponse,
         MutationRecord,
@@ -21,8 +28,10 @@ except ImportError:  # pragma: no cover - only used by the direct uvicorn entryp
     from models import (  # type: ignore[no-redef]
         AnalysisResponse,
         ApprovalResponse,
+        BridgeHistory,
         ChecklistItem,
         ChecklistResponse,
+        DashboardSummary,
         ParsedEvent,
         StatusResponse,
         MutationRecord,
@@ -183,6 +192,10 @@ class BridgeStore:
         return parsed
 
     def analyze(self, parsed: ParsedEvent) -> AnalysisResponse:
+        if parsed.bridge_id not in self.parsed:
+            # The API also accepts a parsed event supplied by an offline client.
+            # Materialize it so analysis still creates a complete readable session.
+            self.parsed[parsed.bridge_id] = self._stamp("bridge", parsed.bridge_id, "create", parsed)
         scenario = SCENARIO_BY_ID[parsed.scenario_id]
         priority = parsed.severity
         if parsed.safety_flags and priority == "medium":
@@ -300,8 +313,118 @@ class BridgeStore:
                 ("reroute", "Book an approved reefer and update consignee", "dispatch"),
             ],
         }
+        existing = self.checklists.get(bridge_id)
+        if existing is not None:
+            return existing
+
         items = [ChecklistItem(id=item_id, label=label, owner=owner) for item_id, label, owner in templates[scenario_id]]
         result = ChecklistResponse(bridge_id=bridge_id, scenario_id=scenario_id, items=items, updated_at=datetime.now(timezone.utc))
         result = self._stamp("checklist", bridge_id, "create", result)
         self.checklists[bridge_id] = result
         return result
+
+    def update_checklist_item(
+        self, bridge_id: str, item_id: str, completed: bool, notes: str | None
+    ) -> ChecklistResponse:
+        checklist = self.checklists.get(bridge_id)
+        if checklist is None:
+            raise KeyError(f"Unknown checklist for bridge: {bridge_id}")
+
+        item_index = next((index for index, item in enumerate(checklist.items) if item.id == item_id), None)
+        if item_index is None:
+            raise KeyError(f"Unknown checklist item: {item_id}")
+
+        items = list(checklist.items)
+        items[item_index] = items[item_index].model_copy(update={"completed": completed, "notes": notes})
+        updated = checklist.model_copy(update={"items": items})
+        updated = self._stamp("checklist", bridge_id, "update", updated)
+        self.checklists[bridge_id] = updated
+        return updated
+
+    def history(self, bridge_id: str | None = None, limit: int = 100) -> list[BridgeHistory]:
+        """Return materialized bridge sessions with their associated mutation trail."""
+
+        bridge_ids = set(self.parsed)
+        bridge_ids.update(item.bridge_id for item in self.analyses.values())
+        bridge_ids.update(item.bridge_id for item in self.approvals.values())
+        bridge_ids.update(self.checklists)
+        bridge_ids.update(self.statuses)
+        if bridge_id is not None:
+            bridge_ids = {bridge_id} if bridge_id in bridge_ids else set()
+
+        results: list[BridgeHistory] = []
+        for current_bridge_id in bridge_ids:
+            parsed = self.parsed.get(current_bridge_id)
+            analysis = next(
+                (item for item in reversed(list(self.analyses.values())) if item.bridge_id == current_bridge_id),
+                None,
+            )
+            approval = self.approvals.get(analysis.analysis_id) if analysis else None
+            checklist = self.checklists.get(current_bridge_id)
+            status = self.statuses.get(current_bridge_id)
+            related_mutations = [
+                mutation
+                for mutation in self.mutations
+                if mutation.entity_id == current_bridge_id
+                or mutation.payload.get("bridge_id") == current_bridge_id
+            ]
+            values = [value.updated_at for value in (parsed, analysis, approval, checklist, status) if value is not None]
+            if not values:
+                continue
+            scenario_id = (
+                parsed.scenario_id
+                if parsed
+                else analysis.scenario_id
+                if analysis
+                else checklist.scenario_id
+                if checklist
+                else None
+            )
+            results.append(
+                BridgeHistory(
+                    bridge_id=current_bridge_id,
+                    scenario_id=scenario_id,
+                    source_text=parsed.source_text if parsed else None,
+                    parsed=parsed,
+                    analysis=analysis,
+                    approval=approval,
+                    checklist=checklist,
+                    status=status,
+                    mutations=related_mutations,
+                    updated_at=max(values),
+                )
+            )
+
+        results.sort(key=lambda item: item.updated_at, reverse=True)
+        return results[:limit]
+
+    def dashboard_summary(self, recent_limit: int = 10) -> DashboardSummary:
+        sessions = self.history(limit=max(len(self.parsed), 1_000_000))
+        status_counts: dict[str, int] = {}
+        total_checklist_items = 0
+        completed_checklist_items = 0
+        for session in sessions:
+            current_status = session.status.status if session.status else "received"
+            status_counts[current_status] = status_counts.get(current_status, 0) + 1
+            if session.checklist:
+                total_checklist_items += len(session.checklist.items)
+                completed_checklist_items += sum(item.completed for item in session.checklist.items)
+
+        total_bridges = len(sessions)
+        resolved = status_counts.get("resolved", 0)
+        active = max(total_bridges - resolved, 0)
+        return DashboardSummary(
+            generated_at=datetime.now(timezone.utc),
+            total_bridges=total_bridges,
+            active_bridges=active,
+            status_counts=status_counts,
+            pending_approvals=status_counts.get("pending_approval", 0),
+            approved_bridges=status_counts.get("approved", 0),
+            in_progress_bridges=status_counts.get("in_progress", 0),
+            resolved_bridges=resolved,
+            blocked_bridges=status_counts.get("blocked", 0),
+            total_checklist_items=total_checklist_items,
+            completed_checklist_items=completed_checklist_items,
+            checklist_completion_rate=(completed_checklist_items / total_checklist_items if total_checklist_items else 0),
+            recent_activity=self.mutations[-recent_limit:],
+        )
