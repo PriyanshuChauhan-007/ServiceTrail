@@ -98,6 +98,17 @@ export default function App() {
     api.scenarios().then(result => { setScenarios(result); setConnected(true) }).catch(() => setConnected(false))
     void refreshHistory(true)
   }, [refreshHistory])
+  useEffect(() => {
+    const retryConnection = () => {
+      api.health().then(() => setConnected(true)).catch(() => setConnected(false))
+    }
+    const interval = window.setInterval(retryConnection, 5000)
+    window.addEventListener('online', retryConnection)
+    return () => {
+      window.clearInterval(interval)
+      window.removeEventListener('online', retryConnection)
+    }
+  }, [])
   useEffect(() => { if (nav === 'history') void refreshHistory(true) }, [nav, refreshHistory])
 
   const effectiveHistory = useMemo(() => {
