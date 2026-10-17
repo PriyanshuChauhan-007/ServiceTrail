@@ -10,7 +10,7 @@ export const api = {
   scenarios: () => request<Scenario[]>('/api/scenarios'),
   parse: (text: string, scenarioId?: string) => request<ParsedEvent>('/api/bridge/parse', { method: 'POST', body: JSON.stringify({ text, scenario_id: scenarioId }) }),
   analyze: (parsed: ParsedEvent) => request<Analysis>('/api/bridge/analyze', { method: 'POST', body: JSON.stringify({ parsed }) }),
-  approve: (analysisId: string, decision: 'approved' | 'rejected' | 'needs_changes') => request<{ status: string }>('/api/bridge/approve', { method: 'POST', body: JSON.stringify({ analysis_id: analysisId, decision, approver: 'Control Room Lead', note: decision === 'approved' ? 'Approved for controlled execution.' : 'Review required before execution.' }) }),
+  approve: (analysisId: string, decision: 'approved' | 'rejected' | 'needs_changes', note?: string) => request<{ status: string }>('/api/bridge/approve', { method: 'POST', body: JSON.stringify({ analysis_id: analysisId, decision, approver: 'Riya Kapoor', note: note ?? (decision === 'approved' ? 'Approved for controlled execution.' : 'Review required before execution.') }) }),
   checklist: (analysisId: string) => request<Checklist>('/api/bridge/checklist', { method: 'POST', body: JSON.stringify({ analysis_id: analysisId }) }),
   status: (bridgeId: string, status: BridgeStatus) => request('/api/bridge/status', { method: 'PATCH', body: JSON.stringify({ bridge_id: bridgeId, status, updated_by: 'OpsBridge Console' }) }),
 }

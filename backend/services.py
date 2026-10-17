@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime, timezone
 from uuid import uuid4
 
 try:  # Support both ``backend.main`` and ``main`` when run from this folder.
@@ -13,6 +14,7 @@ try:  # Support both ``backend.main`` and ``main`` when run from this folder.
         ChecklistResponse,
         ParsedEvent,
         StatusResponse,
+        MutationRecord,
     )
     from .seed import SCENARIO_BY_ID
 except ImportError:  # pragma: no cover - only used by the direct uvicorn entrypoint.
@@ -23,6 +25,7 @@ except ImportError:  # pragma: no cover - only used by the direct uvicorn entryp
         ChecklistResponse,
         ParsedEvent,
         StatusResponse,
+        MutationRecord,
     )
     from seed import SCENARIO_BY_ID  # type: ignore[no-redef]
 
@@ -40,13 +43,21 @@ class BridgeStore:
         self.approvals: dict[str, ApprovalResponse] = {}
         self.statuses: dict[str, StatusResponse] = {}
         self.checklists: dict[str, ChecklistResponse] = {}
+        self.mutations: list[MutationRecord] = []
+
+    def _stamp(self, entity_type: str, entity_id: str, operation: str, value):
+        version = getattr(value, "version", 1) + (0 if operation == "create" else 1)
+        now = datetime.now(timezone.utc)
+        value = value.model_copy(update={"version": version, "updated_at": now, "sync_status": "pending"})
+        self.mutations.append(MutationRecord(mutation_id=_new_id("mutation"), entity_type=entity_type, entity_id=entity_id, operation=operation, version=version, occurred_at=now, payload=value.model_dump(mode="json")))
+        return value
 
     @staticmethod
     def choose_scenario(text: str, scenario_id: str | None = None) -> str:
         if scenario_id in SCENARIO_BY_ID:
             return scenario_id
         lowered = text.lower()
-        if any(word in lowered for word in ("press", "cnc", "spindle", "hydraulic", "lathe")):
+        if any(word in lowered for word in ("press", "cnc", "spindle", "hydraulic", "lathe", "machine", "motor", "bearing", "machine band", "ruk gaya")):
             return "cnc_press_breakdown"
         if any(word in lowered for word in ("water main", "burst pipe", "water leak", "hydrant", "flooded")):
             return "water_main_break"
@@ -73,9 +84,9 @@ class BridgeStore:
             location = location_match.group(1).strip(" .,-")[:48]
 
         severity = "low"
-        if any(word in lowered for word in ("critical", "emergency", "injury", "fire", "evacuate")):
+        if any(word in lowered for word in ("critical", "emergency", "injury", "fire", "evacuate", "aag", "chot")):
             severity = "critical"
-        elif any(word in lowered for word in ("unsafe", "hazard", "flooded", "leak", "shutdown", "stopped", "band", "ruk gaya", "overheat", "overheating")):
+        elif any(word in lowered for word in ("unsafe", "hazard", "flooded", "leak", "shutdown", "stopped", "band", "ruk gaya", "overheat", "overheating", "garam")):
             severity = "high"
         elif any(word in lowered for word in ("delay", "warning", "vibration", "noise", "late")):
             severity = "medium"
@@ -97,8 +108,12 @@ class BridgeStore:
             "temperature": "temperature excursion",
             "sensor": "sensor failure",
             "late": "route delay",
+            "machine band": "asset stopped",
+            "awaaz": "abnormal noise",
+            "tel leak": "oil leak",
+            "garam": "motor overheating",
         }
-        symptoms = [label for marker, label in symptom_rules.items() if marker in lowered]
+        symptoms = list(dict.fromkeys(label for marker, label in symptom_rules.items() if marker in lowered))
 
         safety_rules = {
             "injury": "reported injury",
@@ -110,6 +125,7 @@ class BridgeStore:
             "overheat": "thermal overload risk",
             "overheating": "thermal overload risk",
             "temperature": "product safety hold",
+            "unsafe": "unsafe operating condition",
         }
         safety_flags = [label for marker, label in safety_rules.items() if marker in lowered]
 
@@ -153,13 +169,17 @@ class BridgeStore:
             quantities=quantities,
             extracted_keywords=keywords,
             confidence=round(confidence, 2),
+            updated_at=datetime.now(timezone.utc),
         )
+        parsed = self._stamp("bridge", parsed.bridge_id, "create", parsed)
         self.parsed[parsed.bridge_id] = parsed
-        self.statuses[parsed.bridge_id] = StatusResponse(
+        status = StatusResponse(
             bridge_id=parsed.bridge_id,
             status="parsed",
             updated_by="bridge-parser",
+            updated_at=datetime.now(timezone.utc),
         )
+        self.statuses[parsed.bridge_id] = self._stamp("status", parsed.bridge_id, "create", status)
         return parsed
 
     def analyze(self, parsed: ParsedEvent) -> AnalysisResponse:
@@ -218,18 +238,26 @@ class BridgeStore:
             approval_reasons=approval_reasons,
             confidence=round(min(0.95, parsed.confidence + 0.03), 2),
             status="pending_approval" if approval_required else "analyzed",
+            updated_at=datetime.now(timezone.utc),
         )
+        analysis = self._stamp("analysis", analysis.analysis_id, "create", analysis)
         self.analyses[analysis.analysis_id] = analysis
-        self.statuses[parsed.bridge_id] = StatusResponse(
+        status = StatusResponse(
             bridge_id=parsed.bridge_id,
             analysis_id=analysis.analysis_id,
             status=analysis.status,
             updated_by="bridge-analyzer",
+            updated_at=datetime.now(timezone.utc),
         )
+        self.statuses[parsed.bridge_id] = self._stamp("status", parsed.bridge_id, "update", status)
         return analysis
 
     def approve(self, analysis_id: str, decision: str, approver: str, note: str | None) -> ApprovalResponse:
         analysis = self.analyses[analysis_id]
+        if analysis.status not in ("pending_approval", "needs_changes"):
+            raise ValueError(f"Analysis is already {analysis.status}; approval is not allowed")
+        if decision == "needs_changes" and not (note and note.strip()):
+            raise ValueError("A note is required when requesting changes")
         status = "approved" if decision == "approved" else "blocked"
         approval = ApprovalResponse(
             analysis_id=analysis_id,
@@ -238,16 +266,20 @@ class BridgeStore:
             approved_by=approver,
             note=note,
             status=status,
+            updated_at=datetime.now(timezone.utc),
         )
+        approval = self._stamp("approval", analysis_id, "create", approval)
         self.approvals[analysis_id] = approval
-        self.analyses[analysis_id] = analysis.model_copy(update={"status": status})
-        self.statuses[analysis.bridge_id] = StatusResponse(
+        self.analyses[analysis_id] = self._stamp("analysis", analysis_id, "update", analysis.model_copy(update={"status": status}))
+        status_record = StatusResponse(
             bridge_id=analysis.bridge_id,
             analysis_id=analysis_id,
             status=status,
             note=note,
             updated_by=approver,
+            updated_at=datetime.now(timezone.utc),
         )
+        self.statuses[analysis.bridge_id] = self._stamp("status", analysis.bridge_id, "update", status_record)
         return approval
 
     def checklist(self, bridge_id: str, scenario_id: str) -> ChecklistResponse:
@@ -269,6 +301,7 @@ class BridgeStore:
             ],
         }
         items = [ChecklistItem(id=item_id, label=label, owner=owner) for item_id, label, owner in templates[scenario_id]]
-        result = ChecklistResponse(bridge_id=bridge_id, scenario_id=scenario_id, items=items)
+        result = ChecklistResponse(bridge_id=bridge_id, scenario_id=scenario_id, items=items, updated_at=datetime.now(timezone.utc))
+        result = self._stamp("checklist", bridge_id, "create", result)
         self.checklists[bridge_id] = result
         return result

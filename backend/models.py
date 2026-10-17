@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class Scenario(BaseModel):
@@ -20,6 +21,21 @@ class Scenario(BaseModel):
 class ParseRequest(BaseModel):
     text: str = Field(min_length=1)
     scenario_id: str | None = None
+
+    @field_validator("text")
+    @classmethod
+    def report_must_contain_text(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Report text cannot be blank")
+        return value
+
+
+class SyncMetadata(BaseModel):
+    version: int = Field(default=1, ge=1)
+    updated_at: datetime
+    is_deleted: bool = False
+    sync_status: Literal["pending", "synced", "conflict"] = "pending"
 
 
 class ParsedEvent(BaseModel):
@@ -37,6 +53,10 @@ class ParsedEvent(BaseModel):
     quantities: dict[str, int] = Field(default_factory=dict)
     extracted_keywords: list[str] = Field(default_factory=list)
     confidence: float = Field(ge=0, le=1)
+    version: int = 1
+    updated_at: datetime
+    is_deleted: bool = False
+    sync_status: Literal["pending", "synced", "conflict"] = "pending"
 
 
 class AnalyzeRequest(BaseModel):
@@ -59,6 +79,10 @@ class AnalysisResponse(BaseModel):
     approval_reasons: list[str] = Field(default_factory=list)
     confidence: float = Field(ge=0, le=1)
     status: str = "pending_approval"
+    version: int = 1
+    updated_at: datetime
+    is_deleted: bool = False
+    sync_status: Literal["pending", "synced", "conflict"] = "pending"
 
 
 class ApprovalRequest(BaseModel):
@@ -75,6 +99,10 @@ class ApprovalResponse(BaseModel):
     approved_by: str
     note: str | None = None
     status: str
+    version: int = 1
+    updated_at: datetime
+    is_deleted: bool = False
+    sync_status: Literal["pending", "synced", "conflict"] = "pending"
 
 
 class ChecklistRequest(BaseModel):
@@ -96,6 +124,10 @@ class ChecklistResponse(BaseModel):
     bridge_id: str
     scenario_id: str
     items: list[ChecklistItem]
+    version: int = 1
+    updated_at: datetime
+    is_deleted: bool = False
+    sync_status: Literal["pending", "synced", "conflict"] = "pending"
 
 
 class StatusUpdateRequest(BaseModel):
@@ -121,6 +153,27 @@ class StatusResponse(BaseModel):
     status: str
     note: str | None = None
     updated_by: str
+    version: int = 1
+    updated_at: datetime
+    is_deleted: bool = False
+    sync_status: Literal["pending", "synced", "conflict"] = "pending"
+
+
+class MutationRecord(BaseModel):
+    mutation_id: str
+    entity_type: str
+    entity_id: str
+    operation: Literal["create", "update", "delete"]
+    version: int
+    occurred_at: datetime
+    payload: dict[str, Any] = Field(default_factory=dict)
+    sync_status: Literal["pending", "synced", "conflict"] = "pending"
+
+
+class SyncSummary(BaseModel):
+    pending: int
+    total: int
+    mutations: list[MutationRecord] = Field(default_factory=list)
 
 
 class HealthResponse(BaseModel):
