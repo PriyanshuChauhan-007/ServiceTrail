@@ -29,8 +29,14 @@ const localAnalyze = (p: ParsedEvent): Analysis => {
 const localChecklist = (p: ParsedEvent): Checklist => ({ bridge_id: p.bridge_id, scenario_id: p.scenario_id, items: metaFor(p.scenario_id).checklist.map((label, i) => ({ id: `${p.scenario_id}-${i}`, label, owner: p.scenario_id === 'water_main_break' ? 'Public works' : p.scenario_id === 'cold_chain_dispatch' ? 'Cold-chain lead' : 'Maintenance', required: true, completed: false, notes: null })) })
 
 type Nav = 'overview' | 'bridge' | 'playbook' | 'history'
+type Theme = 'light' | 'dark'
 type Tone = 'amber' | 'red' | 'green' | 'blue'
 type Metric = { label: string; value: string | number; detail: string; tone: Tone }
+
+const initialTheme = (): Theme => {
+  if (typeof window === 'undefined') return 'light'
+  return window.localStorage.getItem('opsbridge-theme') === 'dark' ? 'dark' : 'light'
+}
 
 const statusText = (value: string) => value.replaceAll('_', ' ')
 const timeText = (value: string) => {
@@ -40,6 +46,7 @@ const timeText = (value: string) => {
 
 export default function App() {
   const [nav, setNav] = useState<Nav>('overview')
+  const [theme, setTheme] = useState<Theme>(initialTheme)
   const [scenarios, setScenarios] = useState(localScenarios)
   const [scenarioId, setScenarioId] = useState(localScenarios[0].id)
   const [message, setMessage] = useState(localScenarios[0].sample_reports[0])
@@ -57,6 +64,11 @@ export default function App() {
   const [remoteHistory, setRemoteHistory] = useState<HistoryEntry[] | null>(null)
   const [historySource, setHistorySource] = useState<'api' | 'session'>('session')
   const [historyLoading, setHistoryLoading] = useState(false)
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    window.localStorage.setItem('opsbridge-theme', theme)
+  }, [theme])
 
   const setHistoryRecord = useCallback((entry: HistoryEntry) => {
     setSessionHistory(current => [entry, ...current.filter(item => item.bridge_id !== entry.bridge_id)])
@@ -180,7 +192,7 @@ export default function App() {
       <div className="sidebar-footer"><div className="network-card"><span className="network-icon">⌁</span><div><b>{connected ? 'Backend available' : 'Offline-ready'}</b><small>{connected ? 'API connected · session cache on' : 'Local bridge engine active'}</small></div></div><div className="operator"><div className="avatar">P</div><div><b>{OPERATOR_NAME}</b><small>{OPERATOR_ROLE}</small></div></div></div>
     </aside>
     <main className="main-content">
-      <header className="topbar"><div><span className="breadcrumb">OPSBRIDGE <b>/</b> {nav.toUpperCase()}</span><h1>{nav === 'overview' ? 'Operations overview' : nav === 'bridge' ? 'Bridge workspace' : nav === 'playbook' ? 'Execution playbook' : 'Incident history'}</h1></div><div className="top-actions"><span className="live-pill"><i /> {connected ? 'ONLINE' : 'OFFLINE-READY'}</span><button type="button" className="sync-action" onClick={syncNow} disabled={pending > 0}>↻ Sync status <b>{pending} pending</b></button></div></header>
+      <header className="topbar"><div><span className="breadcrumb">OPSBRIDGE <b>/</b> {nav.toUpperCase()}</span><h1>{nav === 'overview' ? 'Operations overview' : nav === 'bridge' ? 'Bridge workspace' : nav === 'playbook' ? 'Execution playbook' : 'Incident history'}</h1></div><div className="top-actions"><span className="live-pill"><i /> {connected ? 'ONLINE' : 'OFFLINE-READY'}</span><button type="button" className="sync-action" onClick={syncNow} disabled={pending > 0}>↻ Sync status <b>{pending} pending</b></button><button type="button" className="theme-toggle" onClick={() => setTheme(current => current === 'light' ? 'dark' : 'light')} aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`} title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}><span aria-hidden="true">{theme === 'light' ? '☾' : '☀'}</span><span>{theme === 'light' ? 'Dark' : 'Light'}</span></button></div></header>
       <div className="sync-bar"><span className={connected ? 'sync-online' : 'sync-offline'} /> {connected ? 'Connected to the OpsBridge API. Request records are also retained in this session.' : 'API unavailable. Local parsing, history, and checklist state remain usable.'}<button type="button" className="sync-link" onClick={syncNow}>Check connection</button></div>
       {notice && <div className="notice"><span>●</span>{notice}<button type="button" aria-label="Dismiss notice" onClick={() => setNotice('')}>×</button></div>}
       {nav === 'overview' && <Overview metrics={metrics} history={effectiveHistory} onStart={() => setNav('bridge')} />}
