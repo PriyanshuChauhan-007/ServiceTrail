@@ -1,66 +1,21 @@
-export type Category = 'industrial' | 'civic' | 'logistics'
-export type Priority = 'low' | 'medium' | 'high' | 'critical'
-export type BridgeStatus = 'received' | 'parsed' | 'analyzed' | 'pending_approval' | 'approved' | 'in_progress' | 'resolved' | 'blocked'
-
-export type Scenario = {
-  id: string
-  name: string
-  category: Category
-  description: string
-  criticality: Priority
-  tags: string[]
-  sample_reports: string[]
-}
-
-export type ParsedEvent = {
-  bridge_id: string
-  scenario_id: string
-  source_text: string
-  event_type: string
-  asset_id: string | null
-  machine: string | null
-  location: string | null
-  symptoms: string[]
-  severity: Priority
-  safety_flags: string[]
-  downtime_minutes: number | null
-  quantities: Record<string, number>
-  extracted_keywords: string[]
-  confidence: number
-}
-
-export type Analysis = {
-  analysis_id: string
-  bridge_id: string
-  scenario_id: string
-  priority: Priority
-  summary: string
-  root_cause_hypotheses: string[]
-  recommended_actions: string[]
-  safety_flags: string[]
-  approval_required: boolean
-  approval_reasons: string[]
-  confidence: number
-  status: BridgeStatus
-}
-
-export type ChecklistItem = { id: string; label: string; owner: string; required: boolean; completed: boolean; notes: string | null }
-export type Checklist = { bridge_id: string; scenario_id: string; items: ChecklistItem[] }
-
-export type HistoryEntry = {
-  bridge_id: string
-  scenario_id: string
-  source_text: string
-  status: BridgeStatus | string
-  severity: Priority
-  asset_id: string | null
-  location: string | null
-  created_at: string
-  updated_at?: string
-  analysis_summary?: string
-}
-
-export type SyncSummary = {
-  pending: number
-  total: number
-}
+export type Role = 'worker' | 'engineer' | 'supervisor' | 'admin'
+export interface User { id: string; name: string; email: string; role: Role; organization_id: string; site_id: string; organization_name: string; site_name: string; active?: boolean; must_change_password?: boolean; mfa_enabled?: boolean }
+export interface Asset { id: string; code: string; name: string; area: string; criticality: 'low' | 'medium' | 'high' | 'critical'; manufacturer?: string; model?: string; status: string }
+export type IncidentStatus = 'submitted' | 'needs_clarification' | 'ready_for_review' | 'under_review' | 'changes_requested' | 'approved' | 'in_progress' | 'awaiting_verification' | 'resolved' | 'reopened' | 'cancelled'
+export interface ReportInput { asset_id: string; description: string; impact: string; injury_status: 'none' | 'reported' | 'unknown'; safe_state: 'isolated' | 'stopped' | 'running' | 'unknown'; measurements: string; client_id?: string }
+export interface Finding { field: string; label: string; message: string; severity: 'blocking' | 'warning'; source: 'rule' }
+export interface Analysis { summary: string; hypotheses: string[]; recommended_actions: string[]; safety_flags: string[]; basis: string; report_version: number }
+export interface Evidence { id: string; filename: string; content_type: string; size: number; uploaded_by: string; created_at: string; url: string }
+export interface ChecklistItem { id: string; label: string; required: boolean; completed: boolean; notes: string }
+export interface TimelineEvent { id: string; action: string; actor_name: string; actor_role: string; note: string; at: string; report_version: number }
+export interface Incident { id: string; number: string; asset_id: string; asset: Asset; description: string; impact: string; injury_status: ReportInput['injury_status']; safe_state: ReportInput['safe_state']; measurements: string; priority: string; status: IncidentStatus; version: number; reporter: { id: string; name: string }; assigned_to: { id: string; name: string } | null; created_at: string; updated_at: string; due_at: string | null; findings: Finding[]; analysis: Analysis | null; approval: { actor_name: string; note: string; at: string; report_version: number } | null; checklist: ChecklistItem[]; evidence: Evidence[]; timeline: TimelineEvent[] }
+export type Action = 'analyze' | 'request_changes' | 'approve' | 'start' | 'submit_verification' | 'resolve' | 'reopen' | 'cancel' | 'assign' | 'schedule'
+export interface IncidentPage { items: Incident[]; total: number; counts: Record<string, number> }
+export interface WorkMethod { id: string; name: string; description: string; steps: { label: string; required: boolean }[]; version: number }
+export interface Session { id: string; created_at: string; expires_at: string; current: boolean }
+export interface Site { id: string; name: string }
+export interface Notification { id: string; title: string; message: string; incident_id?: string; created_at: string; read_at: string | null }
+export interface Integration { id: string; name: string; created_at?: string; revoked_at?: string | null; active?: boolean }
+export interface Observation { id: string; external_id: string; observed_at: string; measurements: Record<string, unknown>; integration_id?: string; integration_name?: string; created_at?: string }
+export interface Metrics { counts: Record<string, number>; total?: number; overdue: number; median_resolution_minutes: number | null }
+export interface AdminAudit { items: { id: string; action: string; actor_name: string; note: string; at: string }[]; total: number }

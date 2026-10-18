@@ -1,0 +1,16 @@
+{
+  "id": "/",
+  "name": "OpsBridge — Manufacturing operations",
+  "short_name": "OpsBridge",
+  "description": "Manufacturing field observations and accountable engineering review. Sign-in and approvals require a connection.",
+  "lang": "en",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f4f1e9",
+  "theme_color": "#123b40",
+  "icons": [
+    { "src": "/icons/opsbridge.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icons/opsbridge-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

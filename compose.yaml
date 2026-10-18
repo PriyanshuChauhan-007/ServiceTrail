@@ -1,0 +1,49 @@
+name: opsbridge
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-opsbridge}
+      POSTGRES_USER: ${POSTGRES_USER:-opsbridge}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your local .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [database]
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Set the PostgreSQL SQLAlchemy DATABASE_URL in your local .env}
+      APP_ENV: ${APP_ENV:-development}
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:8080}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [database, app]
+    # Evidence is stored in PostgreSQL, covered by the database volume; no public upload mount.
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${WEB_BIND:-127.0.0.1}:${WEB_PORT:-8080}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [app]
+volumes:
+  postgres_data:
+networks:
+  database:
+    internal: true
+  app:

@@ -1,0 +1,33 @@
+import { useEffect, useState } from 'react'
+import { api } from './api'
+import { Empty, ErrorNotice, Loading, PageHeading } from './components'
+import { dateTime, errorMessage, readable } from './logic'
+import type { Metrics, Notification, WorkMethod } from './types'
+
+export function Notifications({ onOpen }: { onOpen: (id: string) => void }) {
+  const [items, setItems] = useState<Notification[] | null>(null)
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState('')
+  async function refresh() { try { setItems(await api.notifications()); setError('') } catch (e) { setError(errorMessage(e)) } }
+  useEffect(() => { void refresh() }, [])
+  async function read(id: string) { setBusy(id); try { await api.readNotification(id); await refresh() } catch (e) { setError(errorMessage(e)) } finally { setBusy('') } }
+  return <><PageHeading eyebrow="HANDOFFS / DURABLE IN-APP NOTIFICATIONS" title="Keep the next person in view." description="Notifications are server records for your signed-in account. Reading them here records acknowledgement; it does not complete the work." /><section className="panel"><div className="section-heading"><h2>Notification register</h2><button className="button secondary small" onClick={refresh}>Refresh</button></div>{error && <ErrorNotice message={error} />}{!items && !error ? <Loading /> : items?.length ? items.map(item => <article key={item.id} className={`notification-record ${item.read_at ? '' : 'unread'}`}><p className="eyebrow">{item.read_at ? `READ ${dateTime(item.read_at)}` : 'UNREAD'} · {dateTime(item.created_at)}</p><h3>{item.title}</h3><p className="preserve-lines">{item.message}</p><div className="form-actions">{item.incident_id && <button className="button secondary small" onClick={() => onOpen(item.incident_id!)}>Open source record</button>}{!item.read_at && <button className="button primary small" disabled={!!busy} onClick={() => read(item.id)}>{busy === item.id ? 'Recording…' : 'Mark as read'}</button>}</div></article>) : items && <Empty title="No notifications returned."><p>Future server-confirmed handoffs will appear here.</p></Empty>}</section></>
+}
+
+export function MetricsView() {
+  const [value, setValue] = useState<Metrics | null>(null)
+  const [error, setError] = useState('')
+  async function refresh() { try { setValue(await api.metrics()); setError('') } catch (e) { setError(errorMessage(e)) } }
+  useEffect(() => { void refresh() }, [])
+  return <><PageHeading eyebrow="OPERATIONS / ACTUAL SERVER AGGREGATES" title="Measure the work on record." description="Site-scoped counts from persisted reports. No estimated sensor readings or invented performance scores." /><section className="panel"><button className="button secondary small" onClick={refresh}>Refresh aggregates</button>{error && <ErrorNotice message={error} />}{!value && !error && <Loading />}{value && <><dl className="metric-register"><div><dt>Overdue reports</dt><dd>{value.overdue}</dd></div><div><dt>Median resolution time</dt><dd>{value.median_resolution_minutes == null ? 'Not available — no qualifying resolution data' : `${value.median_resolution_minutes.toFixed(1)} minutes`}</dd></div>{Object.entries(value.counts).map(([key, count]) => <div key={key}><dt>{readable(key)}</dt><dd>{count}</dd></div>)}</dl><p className="field-help">Resolution duration is calculated by the server from recorded timestamps, not a forecast or compliance metric.</p></>}</section></>
+}
+
+export function WorkMethods() {
+  const [items, setItems] = useState<WorkMethod[] | null>(null)
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [steps, setSteps] = useState([{ label: '', required: true }])
+  async function refresh() { try { setItems(await api.methods()); setError('') } catch (e) { setError(errorMessage(e)) } }
+  useEffect(() => { void refresh() }, [])
+  return <><PageHeading eyebrow="REVIEW / CONTROLLED WORK METHODS" title="Define the work before release." description="Create immutable method records for reviewer selection. Changes require a new method. Site authors own these instructions; the application does not generate or certify them." />{error && <ErrorNotice message={error} />}<div className="two-column"><section className="panel form-panel"><h2>Create a method record</h2><form className="form-stack" onSubmit={async e => { e.preventDefault(); const node = e.currentTarget; const data = new FormData(node); setBusy(true); setError(''); try { await api.createMethod({ name: String(data.get('name')).trim(), description: String(data.get('description')).trim(), steps: steps.map(step => ({ ...step, label: step.label.trim() })) }); node.reset(); setSteps([{ label: '', required: true }]); await refresh() } catch (e) { setError(errorMessage(e)) } finally { setBusy(false) } }}><label>Method name<input name="name" required maxLength={160} /></label><label>Scope, prerequisites and limitations<textarea name="description" required rows={3} maxLength={10000} /></label>{steps.map((step, index) => <fieldset key={index}><legend>Step {index + 1}</legend><label>Instruction<textarea required value={step.label} onChange={e => setSteps(old => old.map((value, i) => i === index ? { ...value, label: e.target.value } : value))} maxLength={2000} /></label><label className="checkbox-label"><input type="checkbox" checked={step.required} onChange={e => setSteps(old => old.map((value, i) => i === index ? { ...value, required: e.target.checked } : value))} />Required for verification handoff</label>{steps.length > 1 && <button type="button" className="text-button" onClick={() => setSteps(old => old.filter((_, i) => i !== index))}>Remove step</button>}</fieldset>)}<button type="button" className="button secondary" disabled={steps.length >= 50} onClick={() => setSteps(old => [...old, { label: '', required: true }])}>Add method step</button><button className="button primary" disabled={busy}>{busy ? 'Saving…' : 'Create immutable method'}</button></form></section><section className="panel"><h2>Available method records</h2><button className="text-button" onClick={refresh}>Refresh methods</button>{!items && !error && <Loading />}{items?.length === 0 && <Empty title="No methods created yet."><p>Until a method exists, releases use an explicitly labelled generic work record, not a site SOP.</p></Empty>}{items?.map(item => <article className="notification-record" key={item.id}><h3>{item.name} <span className="mono">v{item.version}</span></h3><p>{item.description}</p><ol>{item.steps.map((step, i) => <li key={i}>{step.label} <span className="optional">({step.required ? 'required' : 'optional'})</span></li>)}</ol></article>)}</section></div></>
+}

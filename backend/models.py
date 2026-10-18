@@ -1,228 +1,209 @@
-"""Pydantic request and response models used by the OpsBridge API."""
+"""Strict public input schemas. Identity and workflow state are never client supplied."""
+from typing import Literal
+from uuid import UUID
+from datetime import datetime, timezone
 
-from __future__ import annotations
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from datetime import datetime
-from typing import Any, Literal
-
-from pydantic import BaseModel, Field, field_validator
-
-
-class Scenario(BaseModel):
-    id: str
-    name: str
-    category: Literal["industrial", "civic", "logistics"]
-    description: str
-    criticality: Literal["low", "medium", "high", "critical"]
-    tags: list[str] = Field(default_factory=list)
-    sample_reports: list[str] = Field(default_factory=list)
+Role = Literal["worker", "engineer", "supervisor", "admin"]
 
 
-class ParseRequest(BaseModel):
-    text: str = Field(min_length=1)
-    scenario_id: str | None = None
+class Input(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    @field_validator("text")
+
+class Credentials(Input):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=False)
+    email: str = Field(min_length=3, max_length=254)
+    password: str = Field(min_length=1, max_length=1024)
+
+    @field_validator("email")
     @classmethod
-    def report_must_contain_text(cls, value: str) -> str:
+    def email_address(cls, value: str) -> str:
+        import re
         value = value.strip()
-        if not value:
-            raise ValueError("Report text cannot be blank")
+        if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", value):
+            raise ValueError("A valid email address is required")
+        return value.casefold()
+
+    @field_validator("password", mode="before")
+    @classmethod
+    def preserve_password(cls, value):
+        # Passwords are opaque, including leading/trailing whitespace.
         return value
 
 
-class SyncMetadata(BaseModel):
-    version: int = Field(default=1, ge=1)
-    updated_at: datetime
-    is_deleted: bool = False
-    sync_status: Literal["pending", "synced", "conflict"] = "pending"
+class Login(Credentials):
+    otp: str | None = Field(None, max_length=16)
+    recovery_code: str | None = Field(None, max_length=100)
 
 
-class ParsedEvent(BaseModel):
-    bridge_id: str
-    scenario_id: str
-    source_text: str
-    event_type: str
-    asset_id: str | None = None
-    machine: str | None = None
-    location: str | None = None
-    symptoms: list[str] = Field(default_factory=list)
-    severity: Literal["low", "medium", "high", "critical"]
-    safety_flags: list[str] = Field(default_factory=list)
-    downtime_minutes: int | None = None
-    quantities: dict[str, int] = Field(default_factory=dict)
-    extracted_keywords: list[str] = Field(default_factory=list)
-    confidence: float = Field(ge=0, le=1)
-    version: int = 1
-    updated_at: datetime
-    is_deleted: bool = False
-    sync_status: Literal["pending", "synced", "conflict"] = "pending"
+class NewUser(Credentials):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=False)
+    name: str = Field(min_length=1, max_length=160)
+    password: str = Field(min_length=12, max_length=1024)
+    role: Role
+
+    @field_validator("name")
+    @classmethod
+    def name_text(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Name cannot be blank")
+        return value.strip()
 
 
-class AnalyzeRequest(BaseModel):
-    text: str | None = None
-    parsed: ParsedEvent | None = None
-    scenario_id: str | None = None
-    bridge_id: str | None = None
+class Setup(NewUser):
+    organization_name: str = Field(min_length=1, max_length=160)
+    site_name: str = Field(min_length=1, max_length=160)
+    role: Literal["admin"] = "admin"
+
+    @field_validator("organization_name", "site_name")
+    @classmethod
+    def required_text(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Name cannot be blank")
+        return value.strip()
 
 
-class AnalysisResponse(BaseModel):
-    analysis_id: str
-    bridge_id: str
-    scenario_id: str
-    priority: Literal["low", "medium", "high", "critical"]
-    summary: str
-    root_cause_hypotheses: list[str] = Field(default_factory=list)
-    recommended_actions: list[str] = Field(default_factory=list)
-    safety_flags: list[str] = Field(default_factory=list)
-    approval_required: bool
-    approval_reasons: list[str] = Field(default_factory=list)
-    confidence: float = Field(ge=0, le=1)
-    status: str = "pending_approval"
-    version: int = 1
-    updated_at: datetime
-    is_deleted: bool = False
-    sync_status: Literal["pending", "synced", "conflict"] = "pending"
+class AssetInput(Input):
+    code: str = Field(min_length=1, max_length=80)
+    name: str = Field(min_length=1, max_length=160)
+    area: str = Field(min_length=1, max_length=160)
+    criticality: Literal["low", "medium", "high", "critical"]
+    manufacturer: str | None = Field(None, max_length=160)
+    model: str | None = Field(None, max_length=160)
 
 
-class ApprovalRequest(BaseModel):
-    analysis_id: str
-    decision: Literal["approved", "rejected", "needs_changes"]
-    approver: str = Field(min_length=1)
-    note: str | None = None
+class Report(Input):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=False)
+    asset_id: str = Field(min_length=1, max_length=36)
+    description: str = Field(min_length=1, max_length=20000)
+    impact: str = Field(max_length=10000)
+    injury_status: Literal["none", "reported", "unknown"]
+    safe_state: Literal["isolated", "stopped", "running", "unknown"]
+    measurements: str = Field(default="", max_length=10000)
+
+    @field_validator("description")
+    @classmethod
+    def nonblank_observation(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Description cannot be blank")
+        return value
 
 
-class ApprovalResponse(BaseModel):
-    analysis_id: str
-    bridge_id: str
-    decision: Literal["approved", "rejected", "needs_changes"]
-    approved_by: str
-    note: str | None = None
-    status: str
-    version: int = 1
-    updated_at: datetime
-    is_deleted: bool = False
-    sync_status: Literal["pending", "synced", "conflict"] = "pending"
+class CreateReport(Report):
+    client_id: UUID | None = None
 
 
-class ChecklistRequest(BaseModel):
-    analysis_id: str | None = None
-    bridge_id: str | None = None
-    scenario_id: str | None = None
+class EditReport(Report):
+    version: int = Field(ge=1)
 
 
-class ChecklistItem(BaseModel):
-    id: str
-    label: str
-    owner: str
-    required: bool = True
-    completed: bool = False
-    notes: str | None = None
+class Action(Input):
+    action: Literal["analyze", "request_changes", "approve", "start", "submit_verification", "resolve", "reopen", "cancel", "assign", "schedule"]
+    version: int = Field(ge=1)
+    note: str | None = Field(None, max_length=10000)
+    review_confirmed: bool = False
+    assigned_to: str | None = Field(None, max_length=36)
+    work_method_id: str | None = Field(None, max_length=36)
+    due_at: datetime | None = None
+
+    @field_validator("due_at", mode="before")
+    @classmethod
+    def iso_due(cls, value):
+        if value is not None and (not isinstance(value, str) or "T" not in value.upper()):
+            raise ValueError("Use an ISO timestamp with a timezone")
+        return value
+
+    @field_validator("due_at")
+    @classmethod
+    def aware_due(cls, value):
+        if value is not None and value.tzinfo is None:
+            raise ValueError("Timezone required")
+        return value.astimezone(timezone.utc) if value else value
 
 
-class ChecklistResponse(BaseModel):
-    bridge_id: str
-    scenario_id: str
-    items: list[ChecklistItem]
-    version: int = 1
-    updated_at: datetime
-    is_deleted: bool = False
-    sync_status: Literal["pending", "synced", "conflict"] = "pending"
-
-
-class ChecklistItemUpdateRequest(BaseModel):
-    item_id: str = Field(min_length=1)
+class ChecklistUpdate(Input):
     completed: bool
-    notes: str | None = None
+    notes: str = Field(default="", max_length=10000)
+    version: int = Field(ge=1)
 
 
-class StatusUpdateRequest(BaseModel):
-    status: Literal[
-        "received",
-        "parsed",
-        "analyzed",
-        "pending_approval",
-        "approved",
-        "in_progress",
-        "resolved",
-        "blocked",
-    ]
-    bridge_id: str | None = None
-    analysis_id: str | None = None
-    note: str | None = None
-    updated_by: str = "operator"
+class PasswordProof(Input):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=False)
+    password: str = Field(min_length=1, max_length=1024)
 
 
-class StatusResponse(BaseModel):
-    bridge_id: str
-    analysis_id: str | None = None
-    status: str
-    note: str | None = None
-    updated_by: str
-    version: int = 1
-    updated_at: datetime
-    is_deleted: bool = False
-    sync_status: Literal["pending", "synced", "conflict"] = "pending"
+class OTP(Input):
+    otp: str = Field(min_length=6, max_length=16)
 
 
-class MutationRecord(BaseModel):
-    mutation_id: str
-    entity_type: str
-    entity_id: str
-    operation: Literal["create", "update", "delete"]
-    version: int
-    occurred_at: datetime
-    payload: dict[str, Any] = Field(default_factory=dict)
-    sync_status: Literal["pending", "synced", "conflict"] = "pending"
+class DisableMFA(PasswordProof):
+    otp: str = Field(min_length=6, max_length=16)
 
 
-class SyncSummary(BaseModel):
-    pending: int
-    total: int
-    mutations: list[MutationRecord] = Field(default_factory=list)
+class ChangePassword(Input):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=False)
+    current_password: str = Field(min_length=1, max_length=1024)
+    new_password: str = Field(min_length=12, max_length=1024)
+    otp: str | None = Field(None, max_length=16)
 
 
-class BridgeHistory(BaseModel):
-    """Current materialized state and mutation trail for one bridge session."""
-
-    bridge_id: str
-    scenario_id: str | None = None
-    source_text: str | None = None
-    parsed: ParsedEvent | None = None
-    analysis: AnalysisResponse | None = None
-    approval: ApprovalResponse | None = None
-    checklist: ChecklistResponse | None = None
-    status: StatusResponse | None = None
-    mutations: list[MutationRecord] = Field(default_factory=list)
-    updated_at: datetime
+class ResetPassword(Input):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=False)
+    token: str = Field(min_length=1, max_length=200)
+    new_password: str = Field(min_length=12, max_length=1024)
 
 
-class DashboardSummary(BaseModel):
-    """Small read model for an operator dashboard backed by live store state."""
-
-    generated_at: datetime
-    total_bridges: int
-    active_bridges: int
-    status_counts: dict[str, int] = Field(default_factory=dict)
-    pending_approvals: int
-    approved_bridges: int
-    in_progress_bridges: int
-    resolved_bridges: int
-    blocked_bridges: int
-    total_checklist_items: int
-    completed_checklist_items: int
-    checklist_completion_rate: float = Field(ge=0, le=1)
-    recent_activity: list[MutationRecord] = Field(default_factory=list)
+class UserUpdate(Input):
+    active: bool | None = None
+    role: Role | None = None
 
 
-class HealthResponse(BaseModel):
-    status: Literal["ok"]
-    service: str
-    version: str
-    stored_bridges: int
-    stored_analyses: int
+class NamedInput(Input):
+    name: str = Field(min_length=1, max_length=160)
 
 
-class ErrorResponse(BaseModel):
-    detail: str
-    context: dict[str, Any] | None = None
+class SwitchSite(Input):
+    site_id: str = Field(min_length=1, max_length=36)
+
+
+class MethodStep(Input):
+    label: str = Field(min_length=1, max_length=1000)
+    required: bool = True
+
+
+class MethodInput(NamedInput):
+    description: str = Field(default="", max_length=10000)
+    steps: list[MethodStep] = Field(min_length=1, max_length=100)
+
+
+class ObservationInput(Input):
+    asset_code: str = Field(min_length=1, max_length=80)
+    external_id: str = Field(min_length=1, max_length=160)
+    observed_at: datetime
+    measurements: dict
+
+    @field_validator("observed_at", mode="before")
+    @classmethod
+    def iso_observation(cls, value):
+        if not isinstance(value, str) or "T" not in value.upper():
+            raise ValueError("Use an ISO timestamp with a timezone")
+        return value
+
+    @field_validator("measurements")
+    @classmethod
+    def finite_json(cls, value):
+        import json
+        try:
+            json.dumps(value, allow_nan=False)
+        except (ValueError, TypeError) as exc:
+            raise ValueError("Measurements must contain finite JSON values") from exc
+        return value
+
+    @field_validator("observed_at")
+    @classmethod
+    def aware_observation(cls, value):
+        if value.tzinfo is None:
+            raise ValueError("Timezone required")
+        return value.astimezone(timezone.utc)

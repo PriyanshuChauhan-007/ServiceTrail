@@ -10,4 +10,10 @@ dist/
 *.tsbuildinfo
 *.db
 data/*.json
+backend/data/
+*.db-wal
+*.db-shm
 .DS_Store
+.omnirush/
+frontend/test-results/
+frontend/playwright-report/

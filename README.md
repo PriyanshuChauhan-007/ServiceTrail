@@ -1,49 +1,138 @@
 # OpsBridge
 
-**From frontline words to operational action.**
+**Observe carefully. Decide independently. Leave a clear record.**
 
-OpsBridge is an offline-first hackathon prototype that turns a frontline report into a structured operational incident, routes it through a human-approved decision, and returns a clear action checklist.
+OpsBridge is a manufacturing incident coordination application. A worker records
+equipment observations and evidence; an independent engineer clarifies, reviews
+and releases work; execution is handed back for independent verification.
 
-## Run locally
+This is an implemented authenticated application, **not a certified safety system
+or a claim of commercial readiness**. Rule-based hypotheses are not diagnoses.
+Follow qualified personnel and site procedures; never treat an application state
+as equipment isolation or a permission to bypass an emergency procedure.
 
-### Backend
+## What is implemented
 
-```bash
+- Account setup, password sign-in, revocable HTTP-only cookie sessions and server-side roles.
+- Durable SQLAlchemy storage: SQLite for local work, PostgreSQL configuration for deployment.
+- Organization/site-scoped assets and incidents; workers see their own/assigned records.
+- Separate field notebook and operations desk, search/filter queues, light/dark themes and mobile layouts.
+- Registered asset code lookup and local-camera QR/barcode lookup on supporting browsers.
+- Source report revisions, structured safety statements, impact and worker-entered measurements.
+- Missing-field/contradiction findings; rule-assisted **unverified** hypotheses, not invented confidence scores.
+- Protected PNG/JPEG/WebP/PDF attachments with validation, bounded size and authenticated downloads.
+- Independent, version-checked engineering approval and request-changes with mandatory decision notes.
+- Released checklists with required completion notes, verification handoff, independent closure and reopening.
+- Append-only audit snapshots and JSON export including original statements and provenance.
+- Explicit encrypted IndexedDB device vault, account/site-bound drafts and asset cache,
+  atomic legacy migration and idempotent manual sync.
+- Production-built offline application shell. API/private records/evidence are never service-worker cached.
+- Docker/Compose configuration, CI checks and optional real PostgreSQL acceptance test.
+
+## Local development
+
+Requires Python **3.12+** and Node **22+**. From the repository root:
+
+```sh
 python -m venv .venv
-.venv\Scripts\activate
-pip install -r backend/requirements.txt
-uvicorn backend.main:app --reload --port 8000
+# Windows
+.venv/Scripts/python.exe -m pip install -r backend/requirements-dev.txt
+.venv/Scripts/python.exe -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
+# macOS/Linux: use .venv/bin/python instead
 ```
 
-### Frontend
+In another terminal, from `frontend`:
 
-```bash
-cd frontend
-npm install
-npm run dev
+```sh
+npm ci
+npm run dev -- --host 127.0.0.1 --port 5173
 ```
 
-The frontend falls back to a local demo adapter when the FastAPI service is not running, so the primary flow can be demonstrated offline.
+Open **http://127.0.0.1:5173**. Vite proxies `/api` to port 8000. Readiness is
+**http://127.0.0.1:8000/api/v1/health**. The old `/api/bridge/*` prototype routes
+return 410; they cannot bypass authentication or approval controls.
 
-### Verification
+The existing Windows workspace also has `.venv312`; it is usable instead of `.venv`.
+Do not install packages into a global Python environment.
 
-```bash
-.venv\Scripts\python.exe -m pip install -r backend\requirements-dev.txt
-.venv\Scripts\python.exe -m pytest -q backend\tests
-cd frontend
-npm run build
+## First organization and team
+
+1. Keep a fresh deployment private until initial setup is complete.
+2. Enter your organization, site, name, email and a password of at least 12 characters.
+   The name defaults to **Priyanshu Chauhan**, but authorization comes from the account,
+   never a name or browser-selected role. There are **no seeded passwords/accounts**.
+3. In **Asset register**, create real equipment with its code, name and area.
+4. In **Site setup**, create separate worker and engineer accounts. Deliver initial
+   access details directly to those people, never in committed files or shared logs.
+5. Sign out and sign in as the worker to submit a report. Sign in as the independent
+   engineer to review it. An administrator cannot approve their own report either.
+
+The first administrator is not a fake engineer login. Real roles determine which
+workspace and actions each account can use. See [acceptance walkthrough](docs/judge-demo.md).
+
+## Storage and deployment
+
+Local data defaults to `backend/data/opsbridge.db` and survives API restarts.
+Evidence bytes are in the same database, so consistent backups include attachments.
+Local data and environment files are excluded from Git. Prototype process-memory
+records are not silently imported into the new database.
+
+For Compose, copy `.env.example` to a private `.env`, set a strong PostgreSQL
+password and matching URL, then run:
+
+```sh
+docker compose config
+docker compose up --build -d
 ```
 
-See [`docs/judge-demo.md`](docs/judge-demo.md) for the three-minute demo flow and judge-defense notes.
+Local Compose serves http://localhost:8080. Only the web port is published. Public
+deployments require HTTPS, `APP_ENV=production`, exact `PUBLIC_ORIGIN` and
+`COOKIE_SECURE=true`; production refuses SQLite and unsafe cookie settings.
 
-## Product walkthrough
+Read [operations and deployment](docs/operations.md), [security](SECURITY.md) and
+[backend notes](backend/IMPLEMENTATION.md) before exposing the service.
 
-OpsBridge closes a controlled loop: frontline report → structured bridge request → explainable risk analysis → accountable approval → field checklist → resolved status. The catalog includes industrial CNC breakdowns, municipal water incidents, and cold-chain logistics interruptions so the adapter pattern is visible beyond one happy path. See [`docs/judge-demo.md`](docs/judge-demo.md) for the 3-minute walkthrough, architecture, defense points, limitations, and checks.
+## Offline behavior, precisely
+
+While signed in, a genuinely failed report submission offers **Save attempted
+report as device draft**. This is never offered as success after a 401/403/409/422
+or other HTTP rejection. Manual sync reuses a stable client ID and deletes the
+device draft only after a server receipt. Device records can be cleared at sign-out.
+
+The built PWA caches only its public shell. After a reload, identity still requires
+the server; **offline sign-in is not implemented**. Keep the signed-in tab open for
+disconnected draft capture. Attachments, approvals, checklist writes and verification
+are online-only. IndexedDB is account-scoped in the UI but **not encrypted** and is
+not a security boundary on a shared/untrusted device. No automatic background
+submission or encrypted device credential vault is claimed.
 
 ## Verification
 
-```bash
-python -m compileall backend
-pytest -q backend/tests
-cd frontend && npm run build
+From the root:
+
+```sh
+.venv312/Scripts/python.exe -m pytest backend/tests -q
+.venv312/Scripts/python.exe -m compileall -q backend
+.venv312/Scripts/python.exe -m pip check
+git diff --check
 ```
+
+From `frontend`:
+
+```sh
+npm test
+npm run build
+```
+
+`TEST_POSTGRES_URL` enables the isolated-schema PostgreSQL test; otherwise that test
+is explicitly skipped. CI provisions a disposable PostgreSQL service. UI server
+rendering/logic tests and fake IndexedDB tests are not a substitute for browser,
+mobile-camera, installed-PWA or production deployment acceptance.
+
+## Remaining release work
+
+See [release gates](docs/release-gates.md) for the unfinished commercial requirements:
+SSO/MFA/recovery, managed encrypted offline access, object storage/AV/quotas, site
+administration, configurable work methods, external CMMS/SCADA/notification
+integrations, optional evaluated AI/transcription, load testing and independent
+security/compliance assessment. Those features are **not simulated or claimed** here.
