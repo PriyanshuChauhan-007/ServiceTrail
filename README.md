@@ -116,19 +116,46 @@ No paid domain is required. Use the resulting Render URL as the live demo link o
 a resume, and clearly label it as a student-project demo. See
 [`render.yaml`](render.yaml) and [student demo guide](docs/student-demo.md).
 
+## Quick demo setup (synthetic evaluation data)
+
+To rapidly populate a full demonstration environment for evaluation or interviews without manual entry:
+
+```sh
+python scripts/demo_setup.py
+```
+
+This registers:
+- **Organization & Site**: *Apex Precision Dynamics* (`Plant Alpha - Machining Cell`)
+- **Accounts**:
+  - `admin@apex.local` / `AdminPass1234!` (Administrator)
+  - `engineer@apex.local` / `EngineerPass1234!` (Lead Reliability Engineer)
+  - `worker@apex.local` / `WorkerPass1234!` (Field Technician)
+  - `supervisor@apex.local` / `SupervisorPass1234!` (Operations Supervisor)
+- **Equipment**: Registered CNC mill, hydraulic pump, and sorting conveyor.
+- **Demonstration Incidents**:
+  1. `INC-2026-00101` (*Needs Clarification*): Demonstrates deterministic rule gap analysis.
+  2. `INC-2026-00102` (*Approved & Ready*): Attached approved work method and checklist.
+  3. `INC-2026-00103` (*Resolved & Verified*): Complete execution notes and independent closure audit trail.
+
+See [system architecture diagrams](docs/architecture-diagrams.md) and [acceptance walkthrough](docs/judge-demo.md).
+
+## System architecture & diagrams
+
+Detailed design specifications and Mermaid diagrams are documented in [docs/architecture-diagrams.md](docs/architecture-diagrams.md):
+- **High-Level System Architecture**: PWA, FastAPI, session cookies, and database triggers.
+- **Incident State-Transition Diagram**: 11-state lifecycle with version invalidation.
+- **Separation of Duties Flow**: Human handoffs between worker reporting, engineer approval, checklist execution, and independent verification.
+- **Authentication & Credential Lifecycle**: PBKDF2 hashing, HttpOnly cookies, forced password rotation, and TOTP MFA.
+- **Entity-Relationship (ER) Schema**: Database entities, foreign keys, and audit trigger boundaries.
+- **Deployment Topology**: Container runtime, Render demo hosting, and production PostgreSQL.
+
 ## Offline behavior, precisely
 
-While signed in, a genuinely failed report submission offers **Save attempted
-report as device draft**. This is never offered as success after a 401/403/409/422
-or other HTTP rejection. Manual sync reuses a stable client ID and deletes the
-device draft only after a server receipt. Device records can be cleared at sign-out.
+While signed in, a genuinely failed network submission offers **Save attempted report as device draft**. This is never offered as success after a 401/403/409/422 or other HTTP rejection. Manual sync reuses a stable client ID and deletes the device draft only after server receipt. Device records can be cleared at sign-out.
 
-The built PWA caches only its public shell. After a reload, identity still requires
-the server; **offline sign-in is not implemented**. Keep the signed-in tab open for
-disconnected draft capture. Attachments, approvals, checklist writes and verification
-are online-only. IndexedDB is account-scoped in the UI but **not encrypted** and is
-not a security boundary on a shared/untrusted device. No automatic background
-submission or encrypted device credential vault is claimed.
+Device drafts and cached assets are stored in an encrypted client-side vault using the Web Crypto API (AES-256-GCM with keys derived via PBKDF2). Non-extractable encryption keys exist only in browser memory while unlocked.
+
+The built PWA caches only its public application shell. Disconnected authentication, offline approval, execution mutations, and offline attachment uploads are intentionally not supported; all critical workflow state transitions must be server-confirmed.
 
 ## Verification
 

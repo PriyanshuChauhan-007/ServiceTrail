@@ -53,8 +53,7 @@ evidence for assessment. Start with the root README setup instructions.
   idempotent if the original response was lost; HTTP conflicts never become success.
 - Open a record in two clients, advance one, then attempt the stale action in the
   other. The server rejects it with 409 and requests a refresh.
-- Fresh reload/offline identity, encrypted device records, attachments and approval
-  sync are not implemented. The shell alone is not a fully disconnected authenticated app.
+- Device drafts use an authenticated Web Crypto AES-256-GCM encrypted vault. Disconnected authentication, offline approval, offline execution mutations, and offline attachment uploads are intentionally not supported; the app shell alone is not a fully disconnected authenticated app.
 
 ## Defensible project explanation
 

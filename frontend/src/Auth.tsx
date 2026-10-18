@@ -34,6 +34,16 @@ export default function Auth({ setup, onAuthenticated }: { setup: boolean; onAut
         <label>{reset ? 'New password' : 'Password'}<input type="password" required minLength={setup || reset ? 12 : undefined} autoComplete={setup || reset ? 'new-password' : 'current-password'} value={password} onChange={e => setPassword(e.target.value)} aria-describedby="password-hint" /></label>
         {!setup && !reset && <><label>{recovery ? 'One-use recovery code' : 'Authenticator code (if enrolled)'}<input autoComplete="one-time-code" value={otp} onChange={e => setOtp(e.target.value)} inputMode={recovery ? 'text' : 'numeric'} /></label><label className="checkbox-label"><input type="checkbox" checked={recovery} onChange={e => { setRecovery(e.target.checked); setOtp('') }} />Use a recovery code instead of an authenticator code</label></>}
         <p id="password-hint" className="field-help">{setup ? 'Use at least 12 characters. This account is the site administrator.' : 'Need access? Ask your site administrator to create an account.'}</p>
+        {!setup && !reset && (
+          <div style={{ margin: '4px 0 10px', padding: '10px 12px', background: 'var(--wash)', border: '1px solid var(--line)', borderRadius: '4px', fontSize: '0.75rem' }}>
+            <span style={{ display: 'block', color: 'var(--muted)', marginBottom: '6px', fontWeight: 600 }}>Demo quick-fill credentials:</span>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button type="button" className="button secondary small" style={{ minHeight: '30px', padding: '4px 10px', fontSize: '0.72rem' }} onClick={() => { setEmail('worker@apex.local'); setPassword('WorkerPass1234!'); setOtp(''); setRecovery(false); setError(''); }}>Worker</button>
+              <button type="button" className="button secondary small" style={{ minHeight: '30px', padding: '4px 10px', fontSize: '0.72rem' }} onClick={() => { setEmail('engineer@apex.local'); setPassword('EngineerPass1234!'); setOtp(''); setRecovery(false); setError(''); }}>Engineer</button>
+              <button type="button" className="button secondary small" style={{ minHeight: '30px', padding: '4px 10px', fontSize: '0.72rem' }} onClick={() => { setEmail('admin@apex.local'); setPassword('AdminPass1234!'); setOtp(''); setRecovery(false); setError(''); }}>Admin</button>
+            </div>
+          </div>
+        )}
         {error && <ErrorNotice message={error} />}
         {notice && <p className="notice success" role="status">{notice}</p>}
         <button className="button primary wide" disabled={busy}>{busy ? 'Connecting…' : setup ? 'Create organization & enter' : reset ? 'Reset password' : 'Sign in securely'}<Icon name="arrow" /></button>

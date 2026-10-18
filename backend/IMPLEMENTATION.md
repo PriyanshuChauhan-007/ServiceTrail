@@ -61,8 +61,10 @@ needed for this one-migration baseline.
   All assets, incidents, evidence, assignment candidates and exports are checked
   against **both** organization and site. User directory reads are organization
   scoped as specified; provisioning creates users in the administrator's site.
-  There is no public cross-site administration, site creation, role switching,
-  password reset or account-removal endpoint in this contract.
+  User provisioning requires mandatory initial password rotation (`must_change_password`).
+  Site administrators can activate/deactivate accounts and issue one-use recovery tokens.
+  Users can enroll in TOTP Multi-Factor Authentication (RFC 6238) and generate backup
+  recovery codes. There is no public cross-site administration or self-service account deletion.
 - Only workers and administrators submit reports. Only the author edits the
   source report. An independent engineer/supervisor/admin reviews and approves;
   the author, assignee and any recorded executor cannot approve their own work.
@@ -119,16 +121,24 @@ needed for this one-migration baseline.
   clients; they must supply an authenticated cookie. No permissive CORS is added.
   Interactive documentation is disabled; production also disables OpenAPI.
 
-## Checks
+## Checks and verification
 
-Install runtime/test requirements only into the project's `.venv312`:
+Install runtime/test requirements:
 
 ```sh
-.venv312/Scripts/python.exe -m pip install -r backend/requirements-dev.txt
-.venv312/Scripts/python.exe -m pytest backend/tests -q
-.venv312/Scripts/python.exe -m compileall -q backend
-.venv312/Scripts/python.exe -m pip check
+pytest backend/tests -q
+cd frontend && npm test
 ```
+
+The test suite comprises:
+- **35 backend tests** verifying FastAPI endpoints, session cookies, PBKDF2 hashing,
+  concurrency row locks, schema migrations, and optimistic revision checks.
+- **30 frontend tests** verifying device vault encryption, offline draft isolation,
+  PWA caching boundaries, and workspace permissions.
+- **1 Playwright browser workflow** validating the end-to-end multi-role lifecycle.
+
+For synthetic demonstration and portfolio evaluation, use `python scripts/demo_setup.py`
+to instantiate a demo organization, registered assets, team accounts, and pre-staged incidents.
 
 Tests use temporary databases and synthetic test-only identities, not startup
 seeds. They exercise actual HTTP sessions and durable SQLAlchemy transactions,
