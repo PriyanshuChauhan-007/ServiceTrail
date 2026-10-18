@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import copy
+import csv
 import hashlib
 import io
 import json
+import logging
 import re
 import secrets
 import struct
@@ -13,6 +15,8 @@ import warnings
 from contextlib import asynccontextmanager
 from pathlib import Path, PurePosixPath
 from urllib.parse import quote
+
+logger = logging.getLogger("opsbridge.notify")
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.exceptions import RequestValidationError
@@ -218,9 +222,12 @@ def create_app(settings: Settings | None = None):
 
     @app.get("/api/v1/health")
     def health(db: Session = Depends(database)):
+        t0 = time.monotonic()
         try:
             db.execute(text("SELECT 1"))
-            return {"status": "ok", "service": "opsbridge-backend", "version": "1.0.0"}
+            latency_ms = round((time.monotonic() - t0) * 1000, 1)
+            return {"status": "ok", "service": "opsbridge-backend", "version": "1.0.0",
+                    "db": "ok", "db_latency_ms": latency_ms, "environment": settings.environment}
         except SQLAlchemyError:
             fail(503, "Database unavailable")
 
@@ -563,18 +570,91 @@ def create_app(settings: Settings | None = None):
                         headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(evidence.filename)}"})
 
     @app.get("/api/v1/incidents/{incident_id}/export")
-    def export(incident_id: str, user: User = Depends(identity), db: Session = Depends(database)):
+    def export(incident_id: str, fmt: str = "json", user: User = Depends(identity), db: Session = Depends(database)):
         item = scoped_incident(db, user, incident_id)
-        events = db.scalars(select(AuditEvent).where(AuditEvent.incident_id == item.id).order_by(AuditEvent.at, AuditEvent.id))
+        events = list(db.scalars(select(AuditEvent).where(AuditEvent.incident_id == item.id).order_by(AuditEvent.at, AuditEvent.id)))
         evidence = db.scalars(select(Evidence).where(Evidence.incident_id == item.id))
+        if fmt == "csv":
+            buf = io.StringIO()
+            writer = csv.writer(buf, quoting=csv.QUOTE_ALL)
+            writer.writerow(["seq", "action", "actor_name", "actor_role", "at", "report_version", "note"])
+            for seq, ev in enumerate(events, start=1):
+                writer.writerow([seq, ev.action, ev.actor_name, ev.actor_role,
+                                  ev.at, ev.report_version, (ev.note or "").replace("\n", " ")])
+            return Response(buf.getvalue().encode(), media_type="text/csv",
+                            headers={"Content-Disposition": f'attachment; filename="{item.number}-audit.csv"'})
         payload = {"schema_version": 1, "exported_at": now(), "incident": incident_data(db, item),
                    "provenance": {"organization_id": item.organization_id, "site_id": item.site_id,
-                                  "reporter_id": item.reporter_id, "exported_by": user.id,
-                                  "analysis_method": "deterministic rules; unverified hypotheses, not diagnosis",
-                                  "measurements_source": "worker-entered observation; not sensor verified",
-                                  "evidence_sha256": {e.id: e.sha256 for e in evidence}},
-                   "audit_events": [{key: getattr(event, key) for key in ("id", "action", "actor_id", "actor_name", "actor_role", "note", "at", "report_version", "snapshot")} for event in events]}
+                                   "reporter_id": item.reporter_id, "exported_by": user.id,
+                                   "analysis_method": "deterministic rules; unverified hypotheses, not diagnosis",
+                                   "measurements_source": "worker-entered observation; not sensor verified",
+                                   "evidence_sha256": {e.id: e.sha256 for e in evidence}},
+                   "audit_events": [{key: getattr(ev, key) for key in ("id", "action", "actor_id", "actor_name", "actor_role", "note", "at", "report_version", "snapshot")} for ev in events]}
         return JSONResponse(payload, headers={"Content-Disposition": f'attachment; filename="{item.number}.json"'})
+
+    @app.get("/api/v1/analytics/dashboard")
+    def analytics_dashboard(user: User = Depends(identity), db: Session = Depends(database)):
+        """Rich dashboard aggregates scoped to the authenticated user's site."""
+        from .operations import REVIEWERS as REV
+        require_role(user, REV)
+        from datetime import datetime
+        scope = incident_scope(user).subquery()
+        counts = dict(db.execute(select(scope.c.status, func.count()).group_by(scope.c.status)).all())
+        total = sum(counts.values())
+        current = now()
+        overdue = db.scalar(select(func.count()).select_from(scope).where(
+            scope.c.due_at < current,
+            scope.c.status.not_in(["resolved", "cancelled"]))) or 0
+        resolved_rows = db.execute(
+            select(scope.c.created_at, func.max(AuditEvent.at))
+            .join(AuditEvent, AuditEvent.incident_id == scope.c.id)
+            .where(scope.c.status == "resolved", AuditEvent.action == "resolve")
+            .group_by(scope.c.id, scope.c.created_at)
+        ).all()
+        minutes = [
+            (datetime.fromisoformat(end) - datetime.fromisoformat(start)).total_seconds() / 60
+            for start, end in resolved_rows
+        ]
+        sorted_mins = sorted(minutes)
+        median_mins = sorted_mins[len(sorted_mins) // 2] if sorted_mins else None
+        avg_mins = (sum(minutes) / len(minutes)) if minutes else None
+        asset_rows = db.execute(
+            select(Asset.code, Asset.name, Asset.area, func.count(scope.c.id).label("cnt"))
+            .join(scope, scope.c.asset_id == Asset.id)
+            .group_by(Asset.id, Asset.code, Asset.name, Asset.area)
+            .order_by(func.count(scope.c.id).desc())
+            .limit(10)
+        ).all()
+        priority_counts = dict(db.execute(
+            select(scope.c.priority, func.count()).group_by(scope.c.priority)).all())
+        recent_q = db.execute(
+            select(scope.c.number, scope.c.created_at, func.max(AuditEvent.at).label("resolved_at"))
+            .join(AuditEvent, AuditEvent.incident_id == scope.c.id)
+            .where(scope.c.status == "resolved", AuditEvent.action == "resolve")
+            .group_by(scope.c.id, scope.c.number, scope.c.created_at)
+            .order_by(func.max(AuditEvent.at).desc())
+            .limit(10)
+        ).all()
+        recent_resolved = [
+            {"number": num, "created_at": ca, "resolved_at": ra,
+             "duration_minutes": round(
+                 (datetime.fromisoformat(ra) - datetime.fromisoformat(ca)).total_seconds() / 60, 1)}
+            for num, ca, ra in recent_q
+        ]
+        return {
+            "total": total, "counts": counts, "overdue": overdue,
+            "priority_counts": priority_counts,
+            "resolution": {
+                "count": len(minutes),
+                "median_minutes": round(median_mins, 1) if median_mins is not None else None,
+                "avg_minutes": round(avg_mins, 1) if avg_mins is not None else None,
+            },
+            "asset_frequency": [
+                {"code": code, "name": name, "area": area, "total_count": cnt}
+                for code, name, area, cnt in asset_rows
+            ],
+            "recent_resolved": recent_resolved,
+        }
 
     @app.api_route("/api/bridge/{legacy_path:path}", methods=["GET", "POST", "PATCH", "PUT", "DELETE"])
     @app.api_route("/api/scenarios", methods=["GET"])

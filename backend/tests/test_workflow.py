@@ -427,3 +427,31 @@ def test_production_configuration_fails_closed_and_unknown_schema_rejected(tmp_p
     with pytest.raises(RuntimeError, match="Unsupported database schema"):
         initialize(engine)
     engine.dispose()
+
+
+def test_audit_csv_export_and_analytics_dashboard(env):
+    health = ok(TestClient(env["app"]).get(PREFIX + "/health"))
+    assert health["status"] == "ok" and health["db"] == "ok" and "db_latency_ms" in health
+
+    assert env["worker"].get(PREFIX + "/analytics/dashboard").status_code == 403
+    dash = ok(env["engineer"].get(PREFIX + "/analytics/dashboard"))
+    assert "counts" in dash and "resolution" in dash and "asset_frequency" in dash
+
+    item = report(env)
+    item = approve(env, item)
+    item = action(env["worker"], item, "start")
+    for step in item["checklist"]:
+        item = ok(env["worker"].patch(f'{PREFIX}/incidents/{item["id"]}/checklist/{step["id"]}', json={"completed": True, "notes": "Observed step outcome.", "version": item["version"]}))
+    item = action(env["worker"], item, "submit_verification")
+    item = action(env["engineer"], item, "resolve", note="Verified in person.")
+
+    csv_resp = env["engineer"].get(f'{PREFIX}/incidents/{item["id"]}/export?fmt=csv')
+    assert csv_resp.status_code == 200
+    assert "text/csv" in csv_resp.headers["content-type"]
+    assert "resolve" in csv_resp.text
+    assert f'{item["number"]}-audit.csv' in csv_resp.headers.get("content-disposition", "")
+
+    dash_after = ok(env["engineer"].get(PREFIX + "/analytics/dashboard"))
+    assert dash_after["counts"].get("resolved", 0) >= 1
+    assert dash_after["resolution"]["count"] >= 1
+

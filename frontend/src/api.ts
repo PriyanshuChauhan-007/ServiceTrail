@@ -1,4 +1,4 @@
-import type { Action, AdminAudit, Asset, Incident, IncidentPage, Integration, Metrics, Notification, Observation, ReportInput, Role, Session, Site, User, WorkMethod } from './types'
+import type { Action, AdminAudit, Asset, Dashboard, Incident, IncidentPage, Integration, Metrics, Notification, Observation, ReportInput, Role, Session, Site, User, WorkMethod } from './types'
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) { super(message); this.name = 'ApiError' }
@@ -64,6 +64,7 @@ export const api = {
   notifications: () => request<Notification[]>('/notifications'),
   readNotification: (id: string) => post<void>(`/notifications/${encodeURIComponent(id)}/read`, {}),
   metrics: () => request<Metrics>('/metrics/summary'),
+  dashboard: () => request<Dashboard>('/analytics/dashboard'),
   integrations: () => request<Integration[]>('/integrations'),
   createIntegration: (name: string) => post<{ id: string; name: string; token: string }>('/integrations', { name }),
   revokeIntegration: (id: string) => request<void>(`/integrations/${encodeURIComponent(id)}`, { method: 'DELETE' }),
@@ -81,5 +82,13 @@ export const api = {
     if (target.origin !== window.location.origin || !target.pathname.startsWith('/api/v1/')) throw new Error('The evidence URL is not a protected site API resource.')
     return (await responseFor(target.href)).blob()
   },
-  export: (id: string) => request<unknown>(`/incidents/${encodeURIComponent(id)}/export`),
+  export: (id: string) => request<unknown>(`/incidents/${encodeURIComponent(id)}/export?fmt=json`),
+  exportCsv: async (id: string, filename: string) => {
+    const resp = await responseFor(`/api/v1/incidents/${encodeURIComponent(id)}/export?fmt=csv`)
+    const blob = await resp.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a'); a.href = url; a.download = filename; a.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  },
 }
+

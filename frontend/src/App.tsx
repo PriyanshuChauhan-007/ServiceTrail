@@ -3,6 +3,7 @@ import { api, ApiError, NetworkError } from './api'
 import Auth from './Auth'
 import Admin from './Admin'
 import Assets from './Assets'
+import Dashboard from './Dashboard'
 import Drafts from './Drafts'
 import IncidentDetail from './IncidentDetail'
 import Integrations from './Integrations'
@@ -18,7 +19,7 @@ import { sameDeviceIdentity } from './deviceContext'
 import { cacheAssets, clearOfflineData, isVaultUnlocked, listDrafts, lockVault, readCachedAssets, registerOfflineShell, vaultStatus } from './offline'
 import type { Asset, Incident, User } from './types'
 
-type View = 'queue' | 'assets' | 'report' | 'drafts' | 'admin' | 'incident' | 'security' | 'notifications' | 'metrics' | 'methods' | 'integrations'
+type View = 'queue' | 'assets' | 'report' | 'drafts' | 'admin' | 'incident' | 'security' | 'notifications' | 'metrics' | 'methods' | 'integrations' | 'dashboard'
 export default function App() {
   const [user, setUser] = useState<User | null>(null)
   const [deviceUser, setDeviceUser] = useState<User | null>(null)
@@ -103,7 +104,7 @@ function Workspace({ user, theme, onToggleTheme, onSignedOut, onUserChanged }: {
   const nav = (next: View, title: string, icon: 'book' | 'grid' | 'asset' | 'people' | 'plus' = 'book') => <button aria-current={view === next ? 'page' : undefined} onClick={() => navigate(next)}><Icon name={icon} /><span>{title}</span></button>
   return <div className={`app-shell ${reviewer ? 'desk-workspace' : 'field-workspace'}`}>
     <aside className="sidebar"><div className="sidebar-top"><Brand /><div className="workspace-label"><span className="live-dot" />{reviewer ? 'OPERATIONS DESK' : 'FIELD NOTEBOOK'}</div></div>
-      <nav className="main-nav" aria-label="Workspace">{!user.must_change_password && <>{nav('queue', reviewer ? 'Work register' : 'My notebook', reviewer ? 'grid' : 'book')}{['worker', 'admin'].includes(user.role) && <button aria-current={view === 'report' ? 'page' : undefined} onClick={() => report()}><Icon name="plus" /><span>New field report</span></button>}{nav('assets', 'Asset register', 'asset')}{nav('drafts', `Device drafts${draftCount !== null ? ` · ${draftCount}` : ''}`)}{nav('notifications', 'Notifications')}{reviewer && <>{nav('methods', 'Work methods')}{nav('metrics', 'Operations metrics', 'grid')}</>}{user.role === 'admin' && <>{nav('admin', 'Site & team', 'people')}{nav('integrations', 'Inbound sources', 'asset')}</>}</>}{nav('security', 'Account security')}</nav>
+      <nav className="main-nav" aria-label="Workspace">{!user.must_change_password && <>{nav('queue', reviewer ? 'Work register' : 'My notebook', reviewer ? 'grid' : 'book')}{['worker', 'admin'].includes(user.role) && <button aria-current={view === 'report' ? 'page' : undefined} onClick={() => report()}><Icon name="plus" /><span>New field report</span></button>}{nav('assets', 'Asset register', 'asset')}{nav('drafts', `Device drafts${draftCount !== null ? ` · ${draftCount}` : ''}`)}{nav('notifications', 'Notifications')}{reviewer && <>{nav('methods', 'Work methods')}{nav('dashboard', 'Site dashboard', 'grid')}{nav('metrics', 'Operations metrics', 'grid')}</>}{user.role === 'admin' && <>{nav('admin', 'Site & team', 'people')}{nav('integrations', 'Inbound sources', 'asset')}</>}</>}{nav('security', 'Account security')}</nav>
       <div className="sidebar-principle"><span className="eyebrow">THE OPERATING PRINCIPLE</span><p>Observe carefully.<br />Decide independently.<br />Leave a clear record.</p><div className="sidebar-rule" /></div>
       <div className="sidebar-bottom"><button className="theme-toggle" onClick={onToggleTheme}><Icon name={theme === 'light' ? 'moon' : 'sun'} size={18} /><span>{theme === 'light' ? 'Switch to dark' : 'Switch to light'}</span></button><div className="identity"><span className="avatar">{user.name.split(' ').map(v => v[0]).slice(0, 2).join('')}</span><div><strong>{user.name}</strong><span>{user.role}</span></div><button className="icon-button" onClick={() => { setLogoutOpen(!logoutOpen); refreshDrafts() }} aria-label="Sign out options" aria-expanded={logoutOpen}><Icon name="logout" size={19} /></button></div></div>
     </aside>
@@ -123,6 +124,7 @@ function Workspace({ user, theme, onToggleTheme, onSignedOut, onUserChanged }: {
           {view === 'incident' && <IncidentDetail key={incidentId} id={incidentId} user={user} users={users} assets={assets} onBack={() => navigate('queue')} onUpdated={updated} />}
           {view === 'notifications' && <Notifications onOpen={openIncident} />}
           {view === 'methods' && reviewer && <WorkMethods />}
+          {view === 'dashboard' && reviewer && <Dashboard />}
           {view === 'metrics' && reviewer && <MetricsView />}
           {view === 'integrations' && user.role === 'admin' && <Integrations />}
         </>}
