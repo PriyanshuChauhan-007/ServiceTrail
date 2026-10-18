@@ -4,7 +4,7 @@
 
 | Command / check | Result |
 | --- | --- |
-| `.venv312/Scripts/python.exe -m pytest -q backend/tests` | 31 passed, 3 explicitly skipped |
+| `py -3.12 -m pytest -q backend/tests` | 35 passed, 3 explicitly skipped |
 | `.venv312/Scripts/python.exe -m compileall -q backend` | Passed |
 | `.venv312/Scripts/python.exe -m pip check` | No broken requirements |
 | `npm test` from `frontend` | 30 passed |
@@ -17,6 +17,7 @@
 | HTTP GET through web proxy `/api/v1/setup/status` | `needs_setup: true`; no accounts/passwords seeded |
 | `docker --version` | Not available in this environment |
 | GitHub Actions `Verify` run `39167158305` for commit `06516a3` | Passed: backend, PostgreSQL acceptance, frontend build/tests, and real-browser workflow |
+| Demo deployment artifacts | Root single-container `Dockerfile` and Render `render.yaml`; Docker image build still needs a Docker-enabled machine |
 
 ## Behavior covered
 

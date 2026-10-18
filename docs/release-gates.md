@@ -1,8 +1,11 @@
-# Release gates: implemented foundation vs launch readiness
+# Student project scope and future work
 
-This is an engineering checklist, not a claim that every item is finished.
+This is a scope document for a BTech final-year project. It separates the
+implemented academic project from optional future work that would be required
+for a commercial product. The unchecked items below are not blockers for a
+student demonstration or resume link.
 
-## Delivered in the product rebuild
+## Implemented academic project scope
 
 - [x] Persistent relational workflow and schema version baseline.
 - [x] Password accounts and revocable HTTP-only sessions; no demo role picker.
@@ -24,9 +27,9 @@ This is an engineering checklist, not a claim that every item is finished.
       → verification test using a fresh synthetic SQLite database.
 - [x] Public-shell-only PWA, Docker configuration and CI/test commands.
 
-## Required before an external production pilot
+## Optional work for a future commercial product
 
-- [ ] Build/run Docker stack and PostgreSQL acceptance in the target environment.
+- [ ] Build/run Docker stack and PostgreSQL acceptance in a target environment.
 - [ ] Real browser, mobile/tablet, camera and installed-PWA acceptance, including two
       users on shared devices and disconnect/reconnect/lost-response cases.
 - [x] Authentication recovery/change-password, MFA choice, user deactivation, session
@@ -44,7 +47,7 @@ This is an engineering checklist, not a claim that every item is finished.
 - [x] Multi-site administration for admins, site switching, site-scoped assignment and
       administrative audit records.
 
-## Remaining full-product capabilities
+## Future enhancements beyond this project
 
 - [x] Encrypted per-user device persistence, trusted device-context unlock, explicit
       legacy migration and same-account/site revalidation. Offline authentication is

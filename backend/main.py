@@ -11,11 +11,12 @@ import struct
 import time
 import warnings
 from contextlib import asynccontextmanager
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from urllib.parse import quote
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.exceptions import RequestValidationError
+from fastapi.staticfiles import StaticFiles
 from PIL import Image, UnidentifiedImageError
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
@@ -38,6 +39,7 @@ REVIEWERS = {"engineer", "supervisor", "admin"}
 EDITABLE = {"submitted", "needs_clarification", "changes_requested"}
 REVIEWABLE = EDITABLE | {"ready_for_review", "under_review", "reopened"}
 DUMMY_PASSWORD_HASH = hash_password(secrets.token_urlsafe(32))
+FRONTEND_DIST = Path(__file__).resolve().parents[1] / "frontend" / "dist"
 
 
 def fail(code, detail):
@@ -567,6 +569,19 @@ def create_app(settings: Settings | None = None):
     @app.api_route("/api/sync/mutations", methods=["GET"])
     def retired(legacy_path: str = ""):
         fail(410, "Prototype API retired. Use the authenticated /api/v1 API")
+
+    # Do not let the SPA fallback turn an unknown API URL into index.html.
+    @app.api_route("/api/v1", methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS", "HEAD"])
+    @app.api_route("/api/v1/{unmatched:path}", methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS", "HEAD"])
+    def unknown_api_route(unmatched: str = ""):
+        fail(404, "API route not found")
+
+    # The production/demo container includes the Vite build. Keep this mount
+    # optional so API-only test runs and local backend development still work
+    # when frontend/dist has not been built yet. API routes are registered
+    # above, so they retain precedence over the root frontend mount.
+    if FRONTEND_DIST.is_dir():
+        app.mount("/", StaticFiles(directory=str(FRONTEND_DIST), html=True), name="frontend")
 
     return app
 

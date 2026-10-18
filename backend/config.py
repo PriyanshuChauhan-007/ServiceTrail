@@ -32,8 +32,8 @@ class Settings:
         return settings
 
     def validate(self):
-        if self.environment not in {"development", "test", "production"}:
-            raise RuntimeError("APP_ENV must be development, test or production")
+        if self.environment not in {"development", "test", "demo", "production"}:
+            raise RuntimeError("APP_ENV must be development, test, demo or production")
         if self.public_origin:
             parsed = urlsplit(self.public_origin)
             if parsed.scheme not in {"http", "https"} or not parsed.netloc or parsed.path or parsed.query or parsed.fragment or parsed.username:

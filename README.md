@@ -2,12 +2,15 @@
 
 **Observe carefully. Decide independently. Leave a clear record.**
 
-OpsBridge is a manufacturing incident coordination application. A worker records
-equipment observations and evidence; an independent engineer clarifies, reviews
-and releases work; execution is handed back for independent verification.
+OpsBridge is a BTech final-year full-stack project for manufacturing incident
+coordination. A worker records equipment observations and evidence; an independent
+engineer clarifies, reviews and releases work; execution is handed back for
+independent verification.
 
-This is an implemented authenticated application, **not a certified safety system
-or a claim of commercial readiness**. Rule-based hypotheses are not diagnoses.
+This is a student project demonstrating application architecture, authentication,
+role-based workflow design, persistence, testing and deployment. It is **not a
+certified safety system or a claim of commercial readiness**. Rule-based hypotheses
+are not diagnoses.
 Follow qualified personnel and site procedures; never treat an application state
 as equipment isolation or a permission to bypass an emergency procedure.
 
@@ -77,7 +80,7 @@ Evidence bytes are in the same database, so consistent backups include attachmen
 Local data and environment files are excluded from Git. Prototype process-memory
 records are not silently imported into the new database.
 
-For Compose, copy `.env.example` to a private `.env`, set a strong PostgreSQL
+For local Compose, copy `.env.example` to a private `.env`, set a strong PostgreSQL
 password and matching URL, then run:
 
 ```sh
@@ -91,6 +94,27 @@ deployments require HTTPS, `APP_ENV=production`, exact `PUBLIC_ORIGIN` and
 
 Read [operations and deployment](docs/operations.md), [security](SECURITY.md) and
 [backend notes](backend/IMPLEMENTATION.md) before exposing the service.
+
+## Free public student demo
+
+The repository includes a small single-container deployment for a public academic
+demo. It is designed for a free Render web service and uses ephemeral SQLite data,
+so it is suitable for recruiters, interviews and presentations—not production use.
+The service may sleep when idle and its data can reset after a redeploy.
+
+1. Create a free Render account and connect this GitHub repository.
+2. Choose **New > Blueprint** and select `render.yaml`.
+3. Let Render create the `opsbridge-demo` web service from the root `Dockerfile`.
+4. After Render gives the service its URL, set `PUBLIC_ORIGIN` to that exact
+   `https://...onrender.com` URL.
+5. Generate a Fernet key and set `FIELD_ENCRYPTION_KEY` in Render's environment
+   variables. Keep both values private.
+6. Redeploy, open the public URL, and complete the first-run setup with synthetic
+   demo data.
+
+No paid domain is required. Use the resulting Render URL as the live demo link on
+a resume, and clearly label it as a student-project demo. See
+[`render.yaml`](render.yaml) and [student demo guide](docs/student-demo.md).
 
 ## Offline behavior, precisely
 
@@ -129,10 +153,13 @@ is explicitly skipped. CI provisions a disposable PostgreSQL service. UI server
 rendering/logic tests and fake IndexedDB tests are not a substitute for browser,
 mobile-camera, installed-PWA or production deployment acceptance.
 
-## Remaining release work
+## Future enhancements beyond the BTech scope
 
-See [release gates](docs/release-gates.md) for the unfinished commercial requirements:
-SSO/MFA/recovery, managed encrypted offline access, object storage/AV/quotas, site
-administration, configurable work methods, external CMMS/SCADA/notification
+The following are optional future product work, not requirements for this student
+project:
+
+See [scope and future work](docs/release-gates.md) for details on:
+SSO/enterprise identity, managed encrypted offline access, object storage/AV/quotas,
+configurable work methods, external CMMS/SCADA/notification
 integrations, optional evaluated AI/transcription, load testing and independent
-security/compliance assessment. Those features are **not simulated or claimed** here.
+security/compliance assessment. These features are **not simulated or claimed** here.

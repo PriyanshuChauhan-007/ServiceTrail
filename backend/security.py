@@ -72,10 +72,18 @@ class SecurityMiddleware:
 
         async def secured_send(message):
             if message["type"] == "http.response.start":
+                is_api = scope["path"].startswith("/api/")
                 extra = {
                     "cache-control": "no-store", "x-content-type-options": "nosniff",
                     "x-frame-options": "DENY", "referrer-policy": "no-referrer",
-                    "content-security-policy": "default-src 'none'; frame-ancestors 'none'; sandbox",
+                    "content-security-policy": (
+                        "default-src 'none'; frame-ancestors 'none'; sandbox"
+                        if is_api else
+                        "default-src 'self'; script-src 'self'; style-src 'self'; "
+                        "img-src 'self' blob: data:; connect-src 'self'; worker-src 'self'; "
+                        "manifest-src 'self'; frame-src blob:; object-src 'none'; base-uri 'self'; "
+                        "frame-ancestors 'none'; form-action 'self'"
+                    ),
                     "permissions-policy": "camera=(), microphone=(), geolocation=()",
                 }
                 if self.settings.environment == "production":

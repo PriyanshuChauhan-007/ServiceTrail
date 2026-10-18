@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: opsbridge-demo
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: APP_ENV
+        value: demo
+      - key: COOKIE_SECURE
+        value: "true"
+      # Render prompts for these values when the Blueprint is first applied.
+      - key: PUBLIC_ORIGIN
+        sync: false
+      - key: FIELD_ENCRYPTION_KEY
+        sync: false
+      # Render's container filesystem is intentionally ephemeral for this demo.
+      - key: DATABASE_URL
+        value: sqlite:///./data/opsbridge.db
