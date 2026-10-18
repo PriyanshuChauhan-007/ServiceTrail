@@ -25,6 +25,7 @@ services:
       APP_ENV: ${APP_ENV:-development}
       PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:8080}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY:?Set FIELD_ENCRYPTION_KEY in your local .env}
     depends_on:
       db:
         condition: service_healthy
