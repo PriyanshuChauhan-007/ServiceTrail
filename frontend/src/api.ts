@@ -37,6 +37,7 @@ const post = <T>(path: string, body: unknown) => request<T>(path, { method: 'POS
 export const api = {
   setupStatus: () => request<{ needs_setup: boolean }>('/setup/status'),
   setup: (data: { organization_name: string; site_name: string; name: string; email: string; password: string }) => post<{ user: User }>('/setup', data),
+  seedDemo: () => post<{ status: string; seeded: boolean; message: string }>('/demo/seed', {}),
   login: (email: string, password: string, otp?: string, recovery_code?: string) => post<{ user: User }>('/auth/login', { email, password, otp, recovery_code }),
   resetPassword: (token: string, new_password: string) => post<void>('/auth/reset-password', { token, new_password }),
   changePassword: (current_password: string, new_password: string, otp?: string) => post<void>('/auth/change-password', { current_password, new_password, otp }),
