@@ -11,9 +11,8 @@ services:
         value: demo
       - key: COOKIE_SECURE
         value: "true"
-      # Render prompts for these values when the Blueprint is first applied.
-      - key: PUBLIC_ORIGIN
-        sync: false
+      # The public URL is added after Render assigns the service URL. Demo mode
+      # temporarily falls back to the incoming Host header during first deploy.
       - key: FIELD_ENCRYPTION_KEY
         sync: false
       # Render's container filesystem is intentionally ephemeral for this demo.
