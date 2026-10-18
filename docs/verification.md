@@ -4,10 +4,10 @@
 
 | Command / check | Result |
 | --- | --- |
-| `.venv312/Scripts/python.exe -m pytest -q backend/tests` | 18 passed, 1 explicitly skipped |
+| `.venv312/Scripts/python.exe -m pytest -q backend/tests` | 31 passed, 3 explicitly skipped |
 | `.venv312/Scripts/python.exe -m compileall -q backend` | Passed |
 | `.venv312/Scripts/python.exe -m pip check` | No broken requirements |
-| `npm test` from `frontend` | 17 passed |
+| `npm test` from `frontend` | 30 passed |
 | `npm run build` from `frontend` | TypeScript and Vite build passed |
 | `npm audit --omit=dev` from `frontend` | 0 reported vulnerabilities at check time; not a security certification |
 | `npm run test:e2e` from `frontend` with Playwright Chromium | 1 real-browser workflow passed against a fresh synthetic SQLite database |
@@ -16,6 +16,7 @@
 | HTTP GET through web proxy `/api/v1/health` | `status: ok`, API version 1.0.0 |
 | HTTP GET through web proxy `/api/v1/setup/status` | `needs_setup: true`; no accounts/passwords seeded |
 | `docker --version` | Not available in this environment |
+| GitHub Actions `Verify` run `39167158305` for commit `06516a3` | Passed: backend, PostgreSQL acceptance, frontend build/tests, and real-browser workflow |
 
 ## Behavior covered
 
@@ -35,8 +36,8 @@ and API/evidence/mutations are not intercepted by the shell cache.
 ## Not passed / not yet exercised
 
 - The PostgreSQL acceptance test is skipped locally because TEST_POSTGRES_URL is
-  unset. A disposable PostgreSQL service/job is configured in GitHub Actions;
-  this file does not claim that remote CI has already run.
+  unset. The disposable PostgreSQL service/job passed in GitHub Actions run
+  `39167158305`.
 - Docker Compose validation, image build and nginx runtime checks were not possible
   because Docker is unavailable. TLS reverse-proxy operation remains a deployment check.
 - Real Chromium authenticated workflow is now covered by `npm run test:e2e` using a
