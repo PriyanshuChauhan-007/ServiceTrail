@@ -32,49 +32,52 @@ may sleep when idle, and synthetic data should be used.
 Do not put the Fernet key or any account password in GitHub, screenshots, the
 README or your resume.
 
-## Create synthetic demo data
+## Live Demo URL & Synthetic Data
 
-Use fictional values such as:
+- **Live URL**: `https://opsbridge-demo.onrender.com`
+- **GitHub Repository**: `https://github.com/PriyanshuChauhan-007/opsbridge`
 
-- Organization: `Northstar Manufacturing Demo`
-- Site: `Acceptance Plant`
-- Asset: `PRESS-07`
-- Worker: `Demo Worker`
-- Engineer: `Demo Engineer`
+The live demonstration environment is pre-configured with synthetic evaluation data:
+- **Organization**: `Apex Precision Dynamics`
+- **Site**: `Plant Alpha - Machining Cell`
+- **Equipment**: CNC Milling Center (`CNC-04`), Hydraulic Stamping Press (`PRESS-07`), Sorting Conveyor (`CONV-02`)
 
-Do not upload real incident reports, employee information, production data or
-real equipment measurements.
+### 1-Click Demo Accounts
+
+| Role | Email | Password | Responsibilities |
+| :--- | :--- | :--- | :--- |
+| **Field Technician** | `worker@apex.local` | `WorkerPass1234!` | Logs equipment observations, photos, executes checklists |
+| **Reliability Engineer** | `engineer@apex.local` | `EngineerPass1234!` | Performs safety gap analysis, approves released work methods |
+| **Operations Supervisor** | `supervisor@apex.local` | `SupervisorPass1234!` | Monitors queue, conducts independent verification of restored assets |
+| **Site Administrator** | `admin@apex.local` | `AdminPass1234!` | Manages asset register, users, and audit logs |
+
+Click any **Demo Persona** pill on the login screen or sidebar to switch roles instantly.
 
 ## Recruiter walkthrough
 
 Show this sequence in three to five minutes:
 
-1. Sign in as the worker.
-2. Create a field report for `PRESS-07`.
-3. Sign in as the engineer in a second browser context.
+1. Sign in as `worker@apex.local` (or click Technician).
+2. Create a field report for `PRESS-07`. Note incomplete safe state to show deterministic gap detection.
+3. Switch to `engineer@apex.local` (or click Reliability Engineer).
 4. Open the report and request clarification.
-5. Return to the worker account and revise the source record.
-6. Analyze the current report as the engineer.
-7. Approve the work only after independent review.
-8. Return to the worker account and complete the checklist.
-9. Submit the work for verification.
-10. Verify and close it as the engineer.
-11. Open the activity trail and explain the versioned audit history.
+5. Return to the worker account and revise the source record. Notice that editing invalidates the previous review.
+6. Return to the engineer account, analyze findings, and **Approve & release work**. Notice that the engineer cannot execute the work they approved (separation of duties).
+7. Return to the worker account, open **Released work**, and complete the checklist with required step notes.
+8. Submit the completion handoff. Status becomes **Awaiting verification**, not closed.
+9. Switch to `supervisor@apex.local` (or independent engineer), inspect saved work, add a verification note, and **Verify & Close**.
+10. Open the activity trail or click **Export CSV/JSON** to inspect the versioned audit history.
 
 The important story is not the number of screens. Explain that the server owns
 the workflow, roles, report versions and approval rules; the browser is not
 trusted to grant permissions.
 
-## Resume link
-
-Use the generated Render URL as the live demo link. Label it clearly:
+## Resume & portfolio links
 
 ```text
-Live demo: https://your-service-name.onrender.com
+Live demo: https://opsbridge-demo.onrender.com
+GitHub: https://github.com/PriyanshuChauhan-007/opsbridge
 ```
-
-Also include the GitHub repository and, ideally, a short screen recording. The
-live service is a demonstration environment and may sleep or reset its data.
 
 ## Troubleshooting
 

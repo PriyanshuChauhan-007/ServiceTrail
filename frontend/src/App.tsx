@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, ApiError, NetworkError } from './api'
 import Auth from './Auth'
+import About from './About'
 import Admin from './Admin'
 import Assets from './Assets'
 import Dashboard from './Dashboard'
@@ -19,7 +20,7 @@ import { sameDeviceIdentity } from './deviceContext'
 import { cacheAssets, clearOfflineData, isVaultUnlocked, listDrafts, lockVault, readCachedAssets, registerOfflineShell, vaultStatus } from './offline'
 import type { Asset, Incident, User } from './types'
 
-type View = 'queue' | 'assets' | 'report' | 'drafts' | 'admin' | 'incident' | 'security' | 'notifications' | 'metrics' | 'methods' | 'integrations' | 'dashboard'
+type View = 'queue' | 'assets' | 'report' | 'drafts' | 'admin' | 'incident' | 'security' | 'notifications' | 'metrics' | 'methods' | 'integrations' | 'dashboard' | 'about'
 export default function App() {
   const [user, setUser] = useState<User | null>(null)
   const [deviceUser, setDeviceUser] = useState<User | null>(null)
@@ -119,7 +120,7 @@ function Workspace({ user, theme, onToggleTheme, onSignedOut, onUserChanged }: {
   const nav = (next: View, title: string, icon: 'book' | 'grid' | 'asset' | 'people' | 'plus' = 'book') => <button aria-current={view === next ? 'page' : undefined} onClick={() => navigate(next)}><Icon name={icon} /><span>{title}</span></button>
   return <div className={`app-shell ${reviewer ? 'desk-workspace' : 'field-workspace'}`}>
     <aside className="sidebar"><div className="sidebar-top"><Brand /><div className="workspace-label"><span className="live-dot" />{reviewer ? 'OPERATIONS DESK' : 'FIELD NOTEBOOK'}</div></div>
-      <nav className="main-nav" aria-label="Workspace">{!user.must_change_password && <>{nav('queue', reviewer ? 'Work register' : 'My notebook', reviewer ? 'grid' : 'book')}{['worker', 'admin'].includes(user.role) && <button aria-current={view === 'report' ? 'page' : undefined} onClick={() => report()}><Icon name="plus" /><span>New field report</span></button>}{nav('assets', 'Asset register', 'asset')}{nav('drafts', `Device drafts${draftCount !== null ? ` · ${draftCount}` : ''}`)}{nav('notifications', 'Notifications')}{reviewer && <>{nav('methods', 'Work methods')}{nav('dashboard', 'Site dashboard', 'grid')}{nav('metrics', 'Operations metrics', 'grid')}</>}{user.role === 'admin' && <>{nav('admin', 'Site & team', 'people')}{nav('integrations', 'Inbound sources', 'asset')}</>}</>}{nav('security', 'Account security')}</nav>
+      <nav className="main-nav" aria-label="Workspace">{!user.must_change_password && <>{nav('queue', reviewer ? 'Work register' : 'My notebook', reviewer ? 'grid' : 'book')}{['worker', 'admin'].includes(user.role) && <button aria-current={view === 'report' ? 'page' : undefined} onClick={() => report()}><Icon name="plus" /><span>New field report</span></button>}{nav('assets', 'Asset register', 'asset')}{nav('drafts', `Device drafts${draftCount !== null ? ` · ${draftCount}` : ''}`)}{nav('notifications', 'Notifications')}{reviewer && <>{nav('methods', 'Work methods')}{nav('dashboard', 'Site dashboard', 'grid')}{nav('metrics', 'Operations metrics', 'grid')}</>}{user.role === 'admin' && <>{nav('admin', 'Site & team', 'people')}{nav('integrations', 'Inbound sources', 'asset')}</>}</>}{nav('security', 'Account security')}{nav('about', 'About OpsBridge', 'book')}</nav>
       {isDemo && (
         <div className="demo-role-nav" aria-label="Switch demo persona">
           <span className="eyebrow">DEMO PERSONA</span>
@@ -177,6 +178,7 @@ function Workspace({ user, theme, onToggleTheme, onSignedOut, onUserChanged }: {
           {view === 'dashboard' && reviewer && <Dashboard />}
           {view === 'metrics' && reviewer && <MetricsView />}
           {view === 'integrations' && user.role === 'admin' && <Integrations />}
+          {view === 'about' && <About />}
         </>}
       </main><footer className="workspace-footer"><Brand compact /><span>{user.site_name} · Accountable manufacturing operations</span><span>No observation is a verified diagnosis.</span></footer>
     </div>

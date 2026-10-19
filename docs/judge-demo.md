@@ -1,10 +1,21 @@
 # OpsBridge acceptance walkthrough
 
-This replaces the retired hackathon single-operator demo. Use a private local
-deployment and test-only observations, never a live factory fault or real private
-evidence for assessment. Start with the root README setup instructions.
+This guide walks through evaluating OpsBridge as an accountable manufacturing incident coordination system.
+It can be evaluated either locally or via the hosted live demo:
+- **Live Demo Instance**: [https://opsbridge-demo.onrender.com](https://opsbridge-demo.onrender.com)
+- **GitHub Repository**: [https://github.com/PriyanshuChauhan-007/opsbridge](https://github.com/PriyanshuChauhan-007/opsbridge)
 
-## Prepare
+## Rapid Evaluation Credentials (Synthetic Data)
+
+If running locally or testing the live instance, use `python scripts/demo_setup.py` or the pre-configured accounts:
+- **Technician**: `worker@apex.local` / `WorkerPass1234!`
+- **Reliability Engineer**: `engineer@apex.local` / `EngineerPass1234!`
+- **Supervisor**: `supervisor@apex.local` / `SupervisorPass1234!`
+- **Site Administrator**: `admin@apex.local` / `AdminPass1234!`
+
+Click the **Demo Persona** switcher on the login screen or in the sidebar to switch roles instantly.
+
+## Prepare (Manual Setup Alternative)
 
 1. Complete organization/site/admin setup using credentials you choose yourself.
 2. Create an asset, for example a press with a real site-local code and area.
