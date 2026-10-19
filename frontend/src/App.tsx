@@ -96,17 +96,67 @@ function Workspace({ user, theme, onToggleTheme, onSignedOut, onUserChanged }: {
   async function logout() {
     if (!confirmNavigation()) return
     setLogoutBusy(true); setError('')
-    try { if (clearOnLogout) await clearOfflineData(user.id); await api.logout(); lockVault(user.id); onSignedOut() }
-    catch (e) { setError(`Sign out did not complete: ${errorMessage(e)}`) } finally { setLogoutBusy(false) }
+    try {
+      if (clearOnLogout) await clearOfflineData(user.id);
+      await api.logout();
+    } catch {
+      // Complete client logout even if session was expired
+    } finally {
+      lockVault(user.id);
+      setLogoutBusy(false);
+      onSignedOut();
+    }
   }
+  const isDemo = user.email.endsWith('@apex.local')
+  const DEMO_PERSONAS = [
+    { role: 'worker', label: 'Technician', email: 'worker@apex.local', pass: 'WorkerPass1234!' },
+    { role: 'engineer', label: 'Engineer', email: 'engineer@apex.local', pass: 'EngineerPass1234!' },
+    { role: 'supervisor', label: 'Supervisor', email: 'supervisor@apex.local', pass: 'SupervisorPass1234!' },
+    { role: 'admin', label: 'Admin', email: 'admin@apex.local', pass: 'AdminPass1234!' },
+  ]
   async function vaultChanged() { refreshDrafts(); if (isVaultUnlocked(user.id) && assetsConfirmed && !cachedAssets) { try { await cacheAssets(user.id, assets) } catch (e) { setError(`Device cache: ${errorMessage(e)}`) } } }
   const security = <Security user={user} onUserChanged={onUserChanged} onSignedOut={() => { lockVault(user.id); onSignedOut() }} onVaultChanged={() => void vaultChanged()} />
   const nav = (next: View, title: string, icon: 'book' | 'grid' | 'asset' | 'people' | 'plus' = 'book') => <button aria-current={view === next ? 'page' : undefined} onClick={() => navigate(next)}><Icon name={icon} /><span>{title}</span></button>
   return <div className={`app-shell ${reviewer ? 'desk-workspace' : 'field-workspace'}`}>
     <aside className="sidebar"><div className="sidebar-top"><Brand /><div className="workspace-label"><span className="live-dot" />{reviewer ? 'OPERATIONS DESK' : 'FIELD NOTEBOOK'}</div></div>
       <nav className="main-nav" aria-label="Workspace">{!user.must_change_password && <>{nav('queue', reviewer ? 'Work register' : 'My notebook', reviewer ? 'grid' : 'book')}{['worker', 'admin'].includes(user.role) && <button aria-current={view === 'report' ? 'page' : undefined} onClick={() => report()}><Icon name="plus" /><span>New field report</span></button>}{nav('assets', 'Asset register', 'asset')}{nav('drafts', `Device drafts${draftCount !== null ? ` · ${draftCount}` : ''}`)}{nav('notifications', 'Notifications')}{reviewer && <>{nav('methods', 'Work methods')}{nav('dashboard', 'Site dashboard', 'grid')}{nav('metrics', 'Operations metrics', 'grid')}</>}{user.role === 'admin' && <>{nav('admin', 'Site & team', 'people')}{nav('integrations', 'Inbound sources', 'asset')}</>}</>}{nav('security', 'Account security')}</nav>
+      {isDemo && (
+        <div className="demo-role-nav" aria-label="Switch demo persona">
+          <span className="eyebrow">DEMO PERSONA</span>
+          <div className="demo-role-pills">
+            {DEMO_PERSONAS.map(p => (
+              <button
+                key={p.role}
+                type="button"
+                className={`demo-role-pill ${user.role === p.role ? 'active' : ''}`}
+                title={`Switch to ${p.label}`}
+                onClick={async () => {
+                  if (user.role === p.role) return
+                  try { await api.logout() } catch { /* ignore */ }
+                  lockVault(user.id)
+                  try {
+                    const res = await api.login(p.email, p.pass)
+                    onUserChanged(res.user)
+                  } catch (e) {
+                    setError(`Persona switch failed: ${errorMessage(e)}`)
+                  }
+                }}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="sidebar-principle"><span className="eyebrow">THE OPERATING PRINCIPLE</span><p>Observe carefully.<br />Decide independently.<br />Leave a clear record.</p><div className="sidebar-rule" /></div>
-      <div className="sidebar-bottom"><button className="theme-toggle" onClick={onToggleTheme}><Icon name={theme === 'light' ? 'moon' : 'sun'} size={18} /><span>{theme === 'light' ? 'Switch to dark' : 'Switch to light'}</span></button><div className="identity"><span className="avatar">{user.name.split(' ').map(v => v[0]).slice(0, 2).join('')}</span><div><strong>{user.name}</strong><span>{user.role}</span></div><button className="icon-button" onClick={() => { setLogoutOpen(!logoutOpen); refreshDrafts() }} aria-label="Sign out options" aria-expanded={logoutOpen}><Icon name="logout" size={19} /></button></div></div>
+      <div className="sidebar-bottom">
+        <button className="theme-toggle" onClick={onToggleTheme}><Icon name={theme === 'light' ? 'moon' : 'sun'} size={18} /><span>{theme === 'light' ? 'Switch to dark' : 'Switch to light'}</span></button>
+        <div className="identity">
+          <span className="avatar">{user.name.split(' ').map(v => v[0]).slice(0, 2).join('')}</span>
+          <div className="identity-info"><strong>{user.name}</strong><span>{user.role}</span></div>
+          <button className="signout-btn" onClick={logout} title="Sign out of this device" aria-label="Sign out"><Icon name="logout" size={16} /><span>Sign out</span></button>
+        </div>
+      </div>
     </aside>
     <div className="workspace-body"><header className="workspace-topbar"><div><span className="topbar-org">{user.organization_name}</span><span className="topbar-divider">/</span><span>{user.site_name}</span></div><span className="topbar-context">{reviewer ? 'SOURCE → REVIEW → RELEASE' : 'OBSERVE → RECORD → HAND OFF'}</span></header>
       <main id="main-content" className="main-content" tabIndex={-1}>

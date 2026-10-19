@@ -254,12 +254,14 @@ def create_app(settings: Settings | None = None):
         admin_audit(db, user, "organization.setup", f"Organization {org.id}; site {site.id}")
         return {"user": public_user(db, user)}
 
-    if settings.environment in {"demo", "development"}:
-        @app.post("/api/v1/demo/seed")
-        def demo_seed():
-            from .demo import seed_demo_data
-            seeded = seed_demo_data(sessions, reset=False)
-            return {"status": "ok", "seeded": seeded, "message": "Demo data ready"}
+    @app.post("/api/v1/demo/seed")
+    def demo_seed(db: Session = Depends(database)):
+        lock = db.get(SetupLock, 1)
+        if settings.environment == "production" and lock and lock.completed:
+            fail(403, "Demo seeding is disabled on configured production sites")
+        from .demo import seed_demo_data
+        seeded = seed_demo_data(sessions, reset=False)
+        return {"status": "ok", "seeded": seeded, "message": "Demo data ready"}
 
     @app.post("/api/v1/auth/login")
     def login(data: Login, request: Request, response: Response, db: Session = Depends(database)):
