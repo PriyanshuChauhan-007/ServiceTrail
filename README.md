@@ -1,6 +1,6 @@
 # OpsBridge
 
-**Accountable Industrial Incident Coordination & Dual-Control Release Platform**
+**Accountable Industrial Incident Coordination and Dual-Control Release Platform**
 
 [![Live Demo](https://img.shields.io/badge/Demo-Live%20on%20Render-46E3B7?style=flat-square&logo=render&logoColor=black)](https://opsbridge-demo.onrender.com)
 [![CI](https://github.com/PriyanshuChauhan-007/opsbridge/actions/workflows/ci.yml/badge.svg)](https://github.com/PriyanshuChauhan-007/opsbridge/actions/workflows/ci.yml)
@@ -15,34 +15,33 @@
 
 ---
 
-### 🚀 Live Demonstration
-The platform is deployed and running in a live evaluation environment:
-- **Hosted Application**: **[https://opsbridge-demo.onrender.com](https://opsbridge-demo.onrender.com)**
-- **One-Click Personas**: On the login screen or in the top navigation, click any **Demo Persona** pill (`Technician`, `Engineer`, `Supervisor`, `Admin`) to tour the entire application with pre-authenticated sessions without typing passwords.
+### Evaluation Environment
+- **Hosted Application**: [https://opsbridge-demo.onrender.com](https://opsbridge-demo.onrender.com)
+- **Role Switching**: On the login screen, select any demo persona (`Technician`, `Engineer`, `Supervisor`, `Admin`) to tour the platform with pre-authenticated sessions.
 
 ---
 
-## 🏭 Why OpsBridge?
+## Motivation and Problem Statement
 
-In production manufacturing (stamping lines, CNC milling cells, chemical reactors, packaging conveyors), machine stoppages cost thousands of dollars per minute. Under pressure to restore throughput, maintenance operations on many plant floors still fall back on **uncoordinated, informal channels**:
+In production manufacturing (stamping lines, CNC milling cells, chemical processing units, and automated material handling), machine stoppages cost thousands of dollars per minute. Under pressure to restore equipment throughput, plant maintenance operations often default to informal channels:
 
-- **WhatsApp & Telegram message threads** where vibration readings, photos of fractured drive pins, and multimeter values get buried without cryptographic timestamps or audit integrity.
-- **Verbal shift handoffs** that leave zero record of who authorized what equipment state.
-- **Paper clipboards and spreadsheets** vulnerable to retrofitted notes, missing signatures, and lost paperwork.
+- **Messaging apps** where vibration readings, multimeter values, and photos of fractured components get buried without timestamp integrity or cryptographic verification.
+- **Verbal shift handoffs** that leave zero record of who authorized an altered machine state.
+- **Paper clipboards and spreadsheets** vulnerable to post-incident alteration, missing signatures, and lost records.
 
-### Critical Failure Modes in Informal Plant Coordination
-1. **The Self-Approval Hazard**: A technician who performs an emergency field fix frequently self-certifies their own work. Without independent peer review, fatal shortcuts go unnoticed.
-2. **Missing Evidence & Broken Provenance**: Photos of machine damage are scattered across personal mobile phones with no tamper-proof link to the work order.
+### Failure Modes in Informal Plant Coordination
+1. **Self-Approval Hazard**: A technician performing an emergency fix often certifies their own work. Without independent peer review, dangerous shortcuts go unnoticed.
+2. **Missing Evidence and Broken Provenance**: Photos of damaged assets remain on personal mobile devices with no permanent binding to the work order.
 3. **Silent State Drift**: If equipment symptoms worsen or new damage is uncovered after an initial sign-off, work continues under obsolete assumptions.
-4. **Regulatory Non-Compliance**: OSHA 1910 (Lockout/Tagout) and ISO 9001/45001 standards require documented **dual-control ("four-eyes principle")**. An engineer cannot approve their own report or execute work they approved; an independent party must confirm safe isolation.
+4. **Regulatory Non-Compliance**: OSHA 1910 (Lockout/Tagout) and ISO 9001/45001 standards require documented dual control ("four-eyes principle"). An engineer cannot approve their own report or execute work they approved; an independent party must confirm safe isolation.
 
-**OpsBridge** eliminates these failure modes by enforcing a strict, server-verified human decision loop backed by deterministic safety validation and an immutable audit trail.
+OpsBridge enforces a server-verified human decision loop backed by deterministic safety validation and an append-only audit trail.
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
-OpsBridge connects shopfloor personnel and reliability engineers through a layered, role-enforced architecture designed for strict human accountability and audit provenance.
+OpsBridge connects shopfloor personnel and reliability engineers through a layered, role-enforced architecture designed for human accountability and audit provenance.
 
 ```mermaid
 graph TB
@@ -98,9 +97,9 @@ graph TB
 
 ---
 
-## 🔄 Incident State Machine & Concurrency Model
+## Incident State Machine and Concurrency Model
 
-Every incident follows an **11-state finite state machine** enforcing separation of duties, optimistic version locking, and automatic invalidation of stale engineering reviews.
+Every incident follows an 11-state finite state machine enforcing separation of duties, optimistic version locking, and automatic invalidation of stale engineering reviews.
 
 ```mermaid
 stateDiagram-v2
@@ -135,14 +134,14 @@ stateDiagram-v2
     cancelled --> [*]
 ```
 
-### Key Concurrency Principles:
+### Concurrency Guarantees
 1. **Separation of Duties**: The author cannot approve their own report. The approver and executor cannot verify completion.
 2. **Version Invalidation**: Any revision to the worker statement increments `report_version`, immediately invalidating previous rule analysis, engineering approval, and active checklists.
 3. **Optimistic Locking**: Every mutation requires matching the server's current `version`. Stale concurrent writes are rejected with `HTTP 409 Conflict`.
 
 ---
 
-## 🤝 Separation of Duties & Human Accountability Flow
+## Separation of Duties and Verification Flow
 
 This sequence illustrates the handoff boundaries between human roles, ensuring that automated rules assist rather than replace accountable engineering judgment:
 
@@ -158,7 +157,7 @@ sequenceDiagram
     Note over W,DB: Phase 1: Observation & Gap Analysis
     W->>API: Submit Field Report (Asset, Description, Safe State, Impact)
     API->>Rule: Evaluate Completeness & State Contradictions
-    Rule-->>API: Unverified Hypotheses + Safety Flags (No AI Hallucinations)
+    Rule-->>API: Unverified Hypotheses + Safety Flags (Deterministic rules)
     API->>DB: Record Incident + Append Audit Snapshot (v1)
 
     Note over W,DB: Phase 2: Clarification & Independent Approval
@@ -190,7 +189,7 @@ sequenceDiagram
 
 ---
 
-## 🗄️ Relational Data Model (ER Schema)
+## Relational Data Model (ER Schema)
 
 OpsBridge models physical shopfloor assets, organizations, sites, role-scoped accounts, versioned incidents, checklists, immutable work methods, and append-only audit events.
 
@@ -307,9 +306,9 @@ erDiagram
 
 ---
 
-## 👥 Separation of Duties Matrix
+## Role Responsibilities and Guardrails
 
-OpsBridge **does not use client-side role toggling or shared mock sessions**. Trust is anchored in authenticated server sessions. Every approval, evidence upload, checklist step, and closure signature is cryptographically bound to an authenticated identity.
+Trust is anchored in authenticated server sessions. Every approval, evidence upload, checklist step, and closure signature is cryptographically bound to an authenticated identity.
 
 | Role | Demo Account | Password | Primary Responsibilities | Architectural Guardrails |
 | :--- | :--- | :--- | :--- | :--- |
@@ -320,26 +319,26 @@ OpsBridge **does not use client-side role toggling or shared mock sessions**. Tr
 
 ---
 
-## ⚡ Core Engineering Highlights
+## Technical Design Highlights
 
-### 1. Deterministic Safety Gap Analysis (Zero AI Hallucinations)
-Industrial life-safety decisions cannot rely on probabilistic LLM responses. OpsBridge uses a deterministic rule engine that parses statements and validates physical plant invariants:
+### 1. Deterministic Safety Gap Analysis
+Industrial life-safety decisions cannot rely on probabilistic text outputs. OpsBridge uses a deterministic rule engine that parses statements and validates physical plant invariants:
 - Flags missing electrical, pneumatic, or hydraulic Lockout/Tagout (LOTO) declarations.
 - Catches contradictory equipment states (e.g., machine logged as "running" alongside "broken spindle").
 - Requires unambiguous injury and hazardous chemical disclosures before status progression.
 
 ### 2. Client-Side Encrypted Device Vault (AES-256-GCM)
-Technicians operating in radio-shielded basements or metal-clad machine bays can draft observations completely offline:
+Technicians operating in radio-shielded basements or metal-clad machine bays can draft observations offline:
 - Uses the browser's native **Web Crypto API** with **AES-256-GCM** encryption and keys derived via **PBKDF2** (600,000 iterations).
 - Encrypted drafts reside safely in IndexedDB and are never readable by unauthorized local scripts.
 - Automatically synchronizes with server-side idempotency keys (`client_id`) upon network reconnection.
 
-### 3. Tamper-Evident Audit Trails & Single-Click Exports
+### 3. Append-Only Audit Trails and Direct Exports
 - **Database Engine Triggers**: Both SQLite triggers (`audit_no_update`, `audit_no_delete`) and PostgreSQL triggers (`reject_audit_mutation()`) prevent mutation of audit history even if ORM controls are bypassed.
-- **Single-Click RFC 4180 CSV Export**: Direct spreadsheet-ready download at `/api/v1/incidents/export?fmt=csv`.
+- **RFC 4180 CSV Export**: Direct spreadsheet-ready download at `/api/v1/incidents/export?fmt=csv`.
 - **Cryptographic JSON Export**: Download complete incident provenance packages with SHA-256 evidence digests.
 
-### 4. Operations Analytics Dashboard (`/analytics/dashboard`)
+### 4. Operations Analytics
 Derived directly from persisted relational transactions:
 - **Mean Time to Resolution (MTTR)**: Median and average resolution durations.
 - **7-Day Trend Volumes**: Incoming incident rate vs. completed verifications.
@@ -347,7 +346,7 @@ Derived directly from persisted relational transactions:
 
 ---
 
-## 💻 Local Development Setup
+## Local Development Setup
 
 ### Prerequisites
 - **Python 3.12+**
@@ -373,7 +372,7 @@ pip install -r backend/requirements-dev.txt
 uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-Backend will be running at `http://127.0.0.1:8000`. Health check: `http://127.0.0.1:8000/api/v1/health`.
+Backend will be running at `http://127.0.0.1:8000`. Health check endpoint: `http://127.0.0.1:8000/api/v1/health`.
 
 ### 2. Frontend Setup
 In a second terminal:
@@ -384,16 +383,16 @@ npm ci
 npm run dev
 ```
 
-Open **`http://127.0.0.1:5173`** in your browser.
+Open `http://127.0.0.1:5173` in your browser.
 
-### 3. Populate Demo Evaluation Data (1 Command)
+### 3. Demo Data Seeding
 In a third terminal, run the automated seeder script:
 
 ```sh
-python scripts/demo_setup.py
+python scripts/demo_setup.py --reset
 ```
 
-This immediately registers:
+This registers:
 - Organization: **Apex Precision Dynamics** (`Plant Alpha - Machining Cell`)
 - 4 Authenticated Personnel (`worker`, `engineer`, `supervisor`, `admin`)
 - CNC Mill, Hydraulic Press, and Conveyor assets
@@ -401,9 +400,9 @@ This immediately registers:
 
 ---
 
-## 🧪 Testing & Verification
+## Testing and Quality Assurance
 
-OpsBridge maintains automated test coverage across both backend and frontend layers:
+OpsBridge includes automated test suites across backend and frontend layers:
 
 ```sh
 # Backend test suite (FastAPI + SQLAlchemy + Contract tests)
@@ -412,7 +411,7 @@ python -m pytest backend/tests -v
 # PostgreSQL isolation and transaction test suite
 pytest backend/tests/test_postgres.py -v
 
-# Frontend unit tests (Node test runner)
+# Frontend unit tests
 cd frontend
 npm test
 
@@ -425,7 +424,7 @@ npm run test:e2e
 
 ---
 
-## ☁️ Deployment
+## Deployment
 
 OpsBridge is packaged for containerized deployment or direct deployment on Render via [`render.yaml`](render.yaml):
 
@@ -435,7 +434,7 @@ docker build -t opsbridge .
 docker run -p 8000:8000 -e APP_ENV=production -e SECRET_KEY="your-secret" opsbridge
 ```
 
-### Production Security Checklist:
+### Production Security Checklist
 - Set `APP_ENV=production`
 - Configure PostgreSQL database URL (`postgresql+psycopg://...`)
 - Set `COOKIE_SECURE=true` and bind to HTTPS origin
@@ -443,11 +442,11 @@ docker run -p 8000:8000 -e APP_ENV=production -e SECRET_KEY="your-secret" opsbri
 
 ---
 
-## 👨‍💻 Project Information & Attribution
+## Project Information
 
-- **Author**: **Priyanshu Chauhan**
+- **Author**: Priyanshu Chauhan
 - **Repository**: [github.com/PriyanshuChauhan-007/opsbridge](https://github.com/PriyanshuChauhan-007/opsbridge)
 - **Specialization**: Full-Stack Architecture, Industrial Safety Systems, Deterministic Workflow Engineering
 
-### ⚠️ Industrial Safety Disclaimer
-*OpsBridge is an academic software engineering project demonstrating application architecture, role-based workflow coordination, and tamper-evident audit trails. It is **not a certified Safety Integrity Level (SIL) system** or a certified hardware interlock. Never treat software state as physical equipment isolation. Always adhere to site Lockout/Tagout (LOTO) protocols, PPE guidelines, and qualified human directives.*
+### Safety Disclaimer
+*OpsBridge is an academic software engineering project demonstrating application architecture, role-based workflow coordination, and tamper-evident audit trails. It is not a certified Safety Integrity Level (SIL) system or a certified hardware interlock. Never treat software state as physical equipment isolation. Always adhere to site Lockout/Tagout (LOTO) protocols, PPE guidelines, and qualified human directives.*

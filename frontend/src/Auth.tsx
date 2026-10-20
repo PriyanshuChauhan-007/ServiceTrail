@@ -92,13 +92,13 @@ export default function Auth({ setup, onAuthenticated }: { setup: boolean; onAut
         <button className="button primary wide" disabled={busy}>{busy ? 'Connecting…' : setup ? 'Create organization & enter' : reset ? 'Reset password' : 'Sign in securely'}<Icon name="arrow" /></button>
         {!setup && <button type="button" className="text-button" disabled={busy} onClick={() => { setReset(!reset); setPassword(''); setToken(''); setOtp(''); setError(''); setNotice('') }}>{reset ? 'Back to sign in' : 'Reset password with administrator token'}</button>}
       </form>
-      <p className="auth-note">Account-based access · Decisions attributed to the signed-in person</p>
+      <p className="auth-note">Account-based access &middot; Decisions attributed to the signed-in identity</p>
       <div className="auth-footer-meta">
-        <a href="https://opsbridge-demo.onrender.com" target="_blank" rel="noreferrer">🌐 Live Demo</a>
-        <span>·</span>
-        <a href="https://github.com/PriyanshuChauhan-007/opsbridge" target="_blank" rel="noreferrer">🐙 GitHub Repo</a>
-        <span>·</span>
-        <span>By Priyanshu Chauhan</span>
+        <a href="https://opsbridge-demo.onrender.com" target="_blank" rel="noreferrer">Live Demo</a>
+        <span>&middot;</span>
+        <a href="https://github.com/PriyanshuChauhan-007/opsbridge" target="_blank" rel="noreferrer">GitHub Repository</a>
+        <span>&middot;</span>
+        <span>Priyanshu Chauhan</span>
       </div>
     </div></section>
   </main>
