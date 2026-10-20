@@ -45,6 +45,17 @@ Use fictional values such as:
 Do not upload real incident reports, employee information, production data or
 real equipment measurements.
 
+To avoid entering every record during an interview, run the repository helper
+from a private terminal after first-run setup:
+
+```powershell
+python scripts/demo_setup.py --base-url https://your-service-name.onrender.com --admin-email your-admin@example.com --admin-password "your-private-password"
+```
+
+It creates one synthetic asset, worker, engineer and incident. It prints the
+generated worker/engineer credentials once and never stores them in the repo.
+The helper is additive; it does not delete existing records.
+
 ## Recruiter walkthrough
 
 Show this sequence in three to five minutes:

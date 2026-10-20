@@ -2,6 +2,32 @@
 
 **Observe carefully. Decide independently. Leave a clear record.**
 
+## What this solves in 30 seconds
+
+Factory maintenance incidents are often handed off through messages, calls or
+paper. That makes it easy to lose the original observation, approve work without
+enough context, or let the person who performed a repair certify their own work.
+
+OpsBridge turns that handoff into a server-enforced workflow:
+
+```text
+Worker observation → Engineer clarification → Independent release
+→ Worker checklist execution → Independent verification → Audit record
+```
+
+The project is not a machine-control system and does not diagnose faults. Its
+purpose is to make human ownership, review, version changes and verification
+visible and difficult to bypass.
+
+## Recruiter demo
+
+- **Live demo:** https://opsbridge-demo.onrender.com
+- **Source code:** https://github.com/PriyanshuChauhan-007/opsbridge
+- **Demo guide:** [docs/recruiter-demo.md](docs/recruiter-demo.md)
+
+The live service is a free student-demo deployment. It may sleep when idle and
+its synthetic data may reset. Do not use real company data or credentials.
+
 OpsBridge is a BTech final-year full-stack project for manufacturing incident
 coordination. A worker records equipment observations and evidence; an independent
 engineer clarifies, reviews and releases work; execution is handed back for
@@ -31,6 +57,44 @@ as equipment isolation or a permission to bypass an emergency procedure.
   atomic legacy migration and idempotent manual sync.
 - Production-built offline application shell. API/private records/evidence are never service-worker cached.
 - Docker/Compose configuration, CI checks and optional real PostgreSQL acceptance test.
+
+## Technical decisions worth discussing
+
+### Deterministic review assistance instead of an LLM
+
+Safety-related review gaps must be reproducible and explainable. The rule engine
+flags missing or contradictory information and returns unverified hypotheses; it
+does not invent a diagnosis or a confidence score.
+
+### Optimistic version checks for concurrent work
+
+Every mutation carries the record version. If two people work from the same old
+record, the later stale write receives a conflict instead of silently overwriting
+newer work. This keeps readers unblocked while protecting the source history.
+
+### Database-backed audit protection
+
+Audit snapshots are protected by application rules and database triggers. The
+system records the source version, authenticated actor, decision note and work
+state rather than trusting a name supplied by the browser.
+
+### Separation of duties as a server rule
+
+The UI hides controls for convenience, but the backend is authoritative: a report
+author cannot approve it, an executor cannot independently verify it, and a report
+revision invalidates stale analysis and approval.
+
+## What makes it non-trivial
+
+This is more than a CRUD status field. The hard parts are the transitions and
+boundaries between people:
+
+- report revisions invalidate old review decisions;
+- required checklist steps need completion notes;
+- stale concurrent actions return HTTP 409;
+- evidence is authenticated and validated before approval;
+- approval and closure require separate accountable actors;
+- audit snapshots preserve the original worker statement.
 
 ## Local development
 

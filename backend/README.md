@@ -1,27 +1,43 @@
 # OpsBridge backend
 
-Offline-first FastAPI prototype for translating a field report into a reviewable
-incident bridge. It uses deterministic keyword/rule parsing, seeded industrial,
-civic, and logistics scenarios, and process-local memory; no database or network
-service is required. Domain state is available to the interactive UI through
-history and dashboard read models, while the deterministic parser remains the
-offline fallback.
+FastAPI and SQLAlchemy backend for the authenticated OpsBridge manufacturing
+incident workflow. The API owns identity, role permissions, organization/site
+scope, incident versions, evidence, approvals, checklists, notifications and
+audit snapshots. The browser is not trusted to grant a role or bypass a workflow
+gate.
 
-## Run
+## Run locally
+
+From the repository root:
 
 ```bash
-python -m pip install -r backend/requirements.txt
-uvicorn backend.main:app --reload
+python -m pip install -r backend/requirements-dev.txt
+python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 ```
 
-The API exposes `/health`, `/api/scenarios`, `/api/bridge/history`,
-`/api/dashboard/summary`, and the parse/analyze/approve/checklist workflow under
-`/api/bridge`. Checklist completion is persisted for the life of the process with
-`PATCH /api/bridge/checklist/{bridge_id}` and `{item_id, completed, notes}`.
-Workflow responses carry `version`, UTC `updated_at`, `is_deleted`, and
-`sync_status` metadata. `GET /api/sync/mutations` returns the append-only
-in-memory outbox (use `?pending_only=false` for the full log).
+The authenticated API lives under `/api/v1`. Readiness is available at
+`/api/v1/health`. The old `/api/bridge/*` prototype routes are retired with
+HTTP 410; they do not provide an unauthenticated bypass.
 
-This is intentionally a lightweight prototype data layer: restarting the backend
-resets session state. The frontend can continue using its deterministic local
-adapter when the API is unavailable.
+## Design points worth discussing
+
+- **Server-side RBAC:** the authenticated session, not a browser-selected role,
+  determines what the user may do.
+- **Version checks:** report edits and workflow actions require the current
+  revision, so stale clients receive a conflict instead of silently overwriting
+  newer work.
+- **Separation of duties:** authors cannot approve their own reports, and
+  execution is handed to an independent reviewer for verification.
+- **Deterministic assistance:** rule findings expose missing or contradictory
+  information; they are not a diagnosis or a safety certification.
+- **Durable provenance:** audit snapshots preserve source versions, actors,
+  decisions, checklist notes and evidence metadata.
+
+## Persistence
+
+SQLite is convenient for local development and the student demo. PostgreSQL is
+supported for the Compose/CI deployment path. Database initialization is versioned
+and unknown non-empty schemas fail closed rather than being silently rewritten.
+
+See `docs/product-contract.md` for the endpoint/workflow contract and
+`backend/IMPLEMENTATION.md` for implementation details.
