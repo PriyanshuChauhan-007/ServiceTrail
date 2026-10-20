@@ -33,7 +33,8 @@ from starlette.responses import JSONResponse
 from .config import Settings
 from .database import (Asset, AuditEvent, AuthSession, Evidence, Incident, LoginThrottle,
                        Organization, SetupLock, Site, User, WorkMethod, initialize, make_database, now, uid)
-from .models import Action, AssetInput, ChecklistUpdate, CreateReport, EditReport, Login, NewUser, Setup
+from .models import (Action, AssetInput, ChecklistUpdate, CreateReport, EditReport, Login, NewUser, Setup,
+                     WorkspaceRegistration)
 from .security import COOKIE, SecurityMiddleware, field_cipher, hash_password, token_hash, verify_password
 from .accounts import admin_audit, install_accounts, verify_mfa
 from .demo_seed import DEMO_SITE_ID, demo_available, is_demo_workspace, revoke_controller, seed_demo
@@ -264,6 +265,26 @@ def create_app(settings: Settings | None = None):
         db.flush()
         issue_session(db, response, user, request)
         admin_audit(db, user, "organization.setup", f"Organization {org.id}; site {site.id}")
+        return {"user": public_user(db, user)}
+
+    @app.post("/api/v1/auth/register", status_code=201)
+    def register_workspace(data: WorkspaceRegistration, request: Request, response: Response,
+                           db: Session = Depends(database)):
+        organization = Organization(name=data.organization_name)
+        db.add(organization)
+        db.flush()
+        site = Site(name=data.site_name, organization_id=organization.id)
+        db.add(site)
+        db.flush()
+        user = User(name=data.name, email=data.email, password_hash=hash_password(data.password), role="admin",
+                    organization_id=organization.id, site_id=site.id)
+        db.add(user)
+        db.flush()
+        # Registration always produces an ordinary account session and cannot
+        # inherit the shared demo controller from a previous browser action.
+        revoke_controller(db, request, response, settings)
+        issue_session(db, response, user, request)
+        admin_audit(db, user, "organization.registered", f"Organization {organization.id}; site {site.id}")
         return {"user": public_user(db, user)}
 
     @app.post("/api/v1/auth/login")

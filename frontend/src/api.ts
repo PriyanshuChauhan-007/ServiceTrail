@@ -38,6 +38,7 @@ export const api = {
   setupStatus: () => request<SetupStatus>('/setup/status'),
   openWorkspace: () => post<{ user: User }>('/auth/demo/enter', {}),
   setup: (data: { organization_name: string; site_name: string; name: string; email: string; password: string }) => post<{ user: User }>('/setup', data),
+  register: (data: { organization_name: string; site_name: string; name: string; email: string; password: string }) => post<{ user: User }>('/auth/register', data),
   login: (email: string, password: string, otp?: string, recovery_code?: string) => post<{ user: User }>('/auth/login', { email, password, otp, recovery_code }),
   resetPassword: (token: string, new_password: string) => post<void>('/auth/reset-password', { token, new_password }),
   changePassword: (current_password: string, new_password: string, otp?: string) => post<void>('/auth/change-password', { current_password, new_password, otp }),

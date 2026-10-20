@@ -65,6 +65,21 @@ class Setup(NewUser):
         return value.strip()
 
 
+class WorkspaceRegistration(Credentials):
+    """Public self-service creation of a new personal workspace."""
+    organization_name: str = Field(min_length=1, max_length=160)
+    site_name: str = Field(min_length=1, max_length=160)
+    name: str = Field(min_length=1, max_length=160)
+    password: str = Field(min_length=12, max_length=1024)
+
+    @field_validator("name", "organization_name", "site_name")
+    @classmethod
+    def required_text(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Name cannot be blank")
+        return value.strip()
+
+
 class AssetInput(Input):
     code: str = Field(min_length=1, max_length=80)
     name: str = Field(min_length=1, max_length=160)

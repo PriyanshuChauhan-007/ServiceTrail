@@ -131,3 +131,14 @@ test('opening the prepared workspace sends no credentials or role identity', asy
   assert.equal(received.options.credentials, 'same-origin')
   assert.deepEqual(JSON.parse(received.options.body), {})
 })
+
+test('workspace registration sends only the required account and site fields', async () => {
+  let received
+  globalThis.fetch = async (url, options) => { received = { url, options }; return new Response(JSON.stringify({ user: { id: 'registered-admin' } }), { status: 201 }) }
+  const data = { organization_name: 'Acme Operations', site_name: 'Main Plant', name: 'Owner Name', email: 'owner@example.test', password: 'a sufficiently long password' }
+  assert.equal((await api.register(data)).user.id, 'registered-admin')
+  assert.equal(received.url, '/api/v1/auth/register')
+  assert.equal(received.options.method, 'POST')
+  assert.equal(received.options.credentials, 'same-origin')
+  assert.deepEqual(JSON.parse(received.options.body), data)
+})
