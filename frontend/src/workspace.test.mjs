@@ -27,6 +27,17 @@ test('first-run identity setup is a real credential form, never a role picker', 
   assert.doesNotMatch(login, /Enter control room|Choose.*role/)
 })
 
+test('a prepared workspace offers server entry without a credential form only when available', async () => {
+  const { default: Auth } = await server.ssrLoadModule('/src/Auth.tsx')
+  const prepared = renderToStaticMarkup(createElement(Auth, { setup: false, sharedAvailable: true, onAuthenticated: noop }))
+  assert.match(prepared, /Shared workspace/)
+  assert.match(prepared, /Open workspace/)
+  assert.match(prepared, /Records are examples, not real operations\. Edits are shared\./)
+  assert.doesNotMatch(prepared, /type="password"|type="email"|Choose.*role|demo persona|1-click/i)
+  const ordinary = renderToStaticMarkup(createElement(Auth, { setup: false, sharedAvailable: false, onAuthenticated: noop }))
+  assert.doesNotMatch(ordinary, /Open workspace|Shared workspace/)
+})
+
 test('worker and reviewer registers expose different responsibility and report controls', async () => {
   const { default: Queue } = await server.ssrLoadModule('/src/Queue.tsx')
   const props = { onOpen: noop, onReport: noop }

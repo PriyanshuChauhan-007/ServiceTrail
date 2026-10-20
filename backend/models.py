@@ -168,6 +168,14 @@ class SwitchSite(Input):
     site_id: str = Field(min_length=1, max_length=36)
 
 
+class SwitchPerspective(Input):
+    perspective: Literal["worker", "engineer", "supervisor", "admin"]
+
+
+class OpenWorkspace(Input):
+    pass
+
+
 class MethodStep(Input):
     label: str = Field(min_length=1, max_length=1000)
     required: bool = True

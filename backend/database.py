@@ -1,6 +1,7 @@
 """SQLAlchemy persistence and explicitly versioned schema initialization."""
 from datetime import datetime, timezone
 from pathlib import Path
+import sqlite3
 from uuid import uuid4
 
 from sqlalchemy import (JSON, Boolean, ForeignKey, Integer, LargeBinary, String, Text, UniqueConstraint,
@@ -253,8 +254,20 @@ def make_database(url: str):
         @event.listens_for(engine, "connect")
         def configure_sqlite(connection, _):
             connection.execute("PRAGMA foreign_keys=ON")
-            connection.execute("PRAGMA journal_mode=WAL")
             connection.execute("PRAGMA busy_timeout=30000")
+            # Cold process starts can race to change the journal mode before
+            # initialize's transaction lock exists. SQLite may reject that PRAGMA
+            # immediately despite busy_timeout; retry only lock contention within
+            # the same bounded timeout, never other database errors.
+            deadline = time.monotonic() + 30
+            while True:
+                try:
+                    connection.execute("PRAGMA journal_mode=WAL")
+                    break
+                except sqlite3.OperationalError as exc:
+                    if getattr(exc, "sqlite_errorcode", None) not in {sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED} or time.monotonic() >= deadline:
+                        raise
+                    time.sleep(0.05)
     return engine, sessionmaker(engine, expire_on_commit=False)
 
 

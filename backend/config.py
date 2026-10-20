@@ -21,6 +21,10 @@ class Settings:
     @classmethod
     def from_env(cls):
         environment = os.getenv("APP_ENV", os.getenv("ENVIRONMENT", "development")).lower()
+        # The legacy alias must never accidentally opt a deployment into seeded
+        # accounts; demo mode requires the explicit APP_ENV switch.
+        if "APP_ENV" not in os.environ and environment == "demo":
+            environment = "development"
         origin = os.getenv("PUBLIC_ORIGIN", "").rstrip("/") or None
         secure = os.getenv("COOKIE_SECURE", "true" if environment == "production" else "false").lower() == "true"
         settings = cls(database_url=os.getenv("DATABASE_URL", cls.database_url), environment=environment,

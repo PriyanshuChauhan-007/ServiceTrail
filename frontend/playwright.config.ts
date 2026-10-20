@@ -19,7 +19,7 @@ export default defineConfig({
       command: `"${python}" -m uvicorn backend.main:app --host 127.0.0.1 --port 8011`,
       cwd: fileURLToPath(new URL('..', import.meta.url)),
       url: 'http://127.0.0.1:8011/api/v1/health', timeout: 120000, reuseExistingServer: false,
-      env: { APP_ENV: 'test', DATABASE_URL: database, FIELD_ENCRYPTION_KEY: randomBytes(32).toString('base64url') + '=', PUBLIC_ORIGIN: origin, COOKIE_SECURE: 'false' },
+      env: { APP_ENV: process.env.E2E_SHARED_WORKSPACE === 'true' ? 'demo' : 'test', DATABASE_URL: database, FIELD_ENCRYPTION_KEY: randomBytes(32).toString('base64url') + '=', PUBLIC_ORIGIN: origin, COOKIE_SECURE: 'false' },
     },
     {
       command: 'npm run build && npm run preview -- --host 127.0.0.1 --port 5179 --strictPort',

@@ -1,4 +1,4 @@
-import type { Action, AdminAudit, Asset, Dashboard, Incident, IncidentPage, Integration, Metrics, Notification, Observation, ReportInput, Role, Session, Site, User, WorkMethod } from './types'
+import type { Action, AdminAudit, Asset, Dashboard, Incident, IncidentPage, Integration, Metrics, Notification, Observation, Perspective, ReportInput, Role, Session, SetupStatus, Site, User, WorkMethod } from './types'
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) { super(message); this.name = 'ApiError' }
@@ -35,7 +35,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 const post = <T>(path: string, body: unknown) => request<T>(path, { method: 'POST', body: JSON.stringify(body) })
 export const api = {
-  setupStatus: () => request<{ needs_setup: boolean }>('/setup/status'),
+  setupStatus: () => request<SetupStatus>('/setup/status'),
+  openWorkspace: () => post<{ user: User }>('/auth/demo/enter', {}),
   setup: (data: { organization_name: string; site_name: string; name: string; email: string; password: string }) => post<{ user: User }>('/setup', data),
   login: (email: string, password: string, otp?: string, recovery_code?: string) => post<{ user: User }>('/auth/login', { email, password, otp, recovery_code }),
   resetPassword: (token: string, new_password: string) => post<void>('/auth/reset-password', { token, new_password }),
@@ -57,6 +58,8 @@ export const api = {
   sites: () => request<Site[]>('/sites'),
   createSite: (name: string) => post<Site>('/sites', { name }),
   switchSite: (site_id: string) => post<{ user: User }>('/auth/switch-site', { site_id }),
+  perspectives: () => request<Perspective[]>('/auth/perspectives'),
+  switchPerspective: (perspective: Role) => post<{ user: User }>('/auth/perspectives/switch', { perspective }),
   audit: (offset = 0) => request<AdminAudit>(`/admin/audit?limit=25&offset=${offset}`),
   methods: () => request<WorkMethod[]>('/work-methods'),
   createMethod: (data: Omit<WorkMethod, 'id' | 'version'>) => post<WorkMethod>('/work-methods', data),

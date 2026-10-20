@@ -4,7 +4,7 @@ import { Brand, ErrorNotice, Icon } from './components'
 import { errorMessage } from './logic'
 import type { User } from './types'
 
-export default function Auth({ setup, onAuthenticated }: { setup: boolean; onAuthenticated: (user: User) => void }) {
+export default function Auth({ setup, sharedAvailable = false, onAuthenticated }: { setup: boolean; sharedAvailable?: boolean; onAuthenticated: (user: User) => void }) {
   const [name, setName] = useState('Priyanshu Chauhan')
   const [organization, setOrganization] = useState('')
   const [site, setSite] = useState('')
@@ -17,6 +17,15 @@ export default function Auth({ setup, onAuthenticated }: { setup: boolean; onAut
   const [otp, setOtp] = useState('')
   const [recovery, setRecovery] = useState(false)
   const [notice, setNotice] = useState('')
+  const [accountSignIn, setAccountSignIn] = useState(false)
+  const sharedEntry = sharedAvailable && !setup && !reset && !accountSignIn
+
+  async function openWorkspace() {
+    setBusy(true); setError('')
+    try { onAuthenticated((await api.openWorkspace()).user) }
+    catch (e) { setError(errorMessage(e)) }
+    finally { setBusy(false) }
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault(); setBusy(true); setError('')
@@ -27,9 +36,9 @@ export default function Auth({ setup, onAuthenticated }: { setup: boolean; onAut
     catch (e) { setError(errorMessage(e)) } finally { setBusy(false) }
   }
   return <main id="main-content" className="auth-layout" tabIndex={-1}>
-    <section className="auth-story"><Brand /><div className="auth-statement"><p className="eyebrow">FROM THE FLOOR. TO A CLEAR DECISION.</p><h1>Good operations<br />start with the<br /><em>whole story.</em></h1><p>A shared record of the asset, the observation, and the people accountable for what happens next.</p></div><div className="auth-foot"><span>01 / Observe</span><span>02 / Review</span><span>03 / Verify</span></div></section>
-    <section className="auth-form"><div className="auth-form-inner"><p className="eyebrow">{setup ? 'YOUR FIRST SHIFT WITH OPSBRIDGE' : reset ? 'ACCOUNT RECOVERY / ONE-USE TOKEN' : 'WELCOME BACK'}</p><h2>{setup ? 'Set up your operations.' : reset ? 'Reset your password.' : 'Your workspace awaits.'}</h2><p className="muted">{setup ? 'Create your site and first administrator. Then register assets and invite the review team.' : reset ? 'Use the token delivered directly by your administrator. Existing MFA remains required at the next sign-in.' : 'Sign in with the account your site administrator created.'}</p>
-      <form onSubmit={submit} className="form-stack">
+    <section className="auth-story"><Brand /><div className="auth-statement"><p className="eyebrow">EQUIPMENT INCIDENTS</p><h1>Report a fault.<br />Review the work.<br /><em>Check the result.</em></h1><p>Workers record what happened. Engineers ask questions and release work. Completion stays open until someone checks it.</p></div><div className="auth-foot"><span>01 / Report</span><span>02 / Review</span><span>03 / Verify</span></div></section>
+    <section className="auth-form"><div className="auth-form-inner"><p className="eyebrow">{setup ? 'YOUR FIRST SHIFT WITH OPSBRIDGE' : reset ? 'ACCOUNT RECOVERY / ONE-USE TOKEN' : 'WELCOME BACK'}</p><h2>{setup ? 'Set up your operations.' : reset ? 'Reset your password.' : sharedEntry ? 'Shared workspace' : 'Your workspace awaits.'}</h2><p className="muted">{setup ? 'Create your site and first administrator. Then register assets and invite the review team.' : reset ? 'Use the token delivered directly by your administrator. Existing MFA remains required at the next sign-in.' : sharedEntry ? 'Records are examples, not real operations. Edits are shared.' : 'Sign in with the account your site administrator created.'}</p>
+      {sharedEntry ? <div className="form-stack">{error && <ErrorNotice message={error} />}<button className="button primary wide" disabled={busy} onClick={openWorkspace}>{busy ? 'Opening…' : 'Open workspace'}<Icon name="arrow" /></button><button className="text-button" disabled={busy} onClick={() => { setAccountSignIn(true); setError('') }}>Sign in to an account</button></div> : <form onSubmit={submit} className="form-stack">
         {setup && <><label>Organization<input required value={organization} onChange={e => setOrganization(e.target.value)} autoComplete="organization" placeholder="Organization name" maxLength={160} /></label><label>Site<input required value={site} onChange={e => setSite(e.target.value)} placeholder="e.g. North manufacturing plant" maxLength={160} /></label><label>Your full name<input required value={name} onChange={e => setName(e.target.value)} autoComplete="name" maxLength={160} /></label></>}
         {reset ? <label>Administrator-issued reset token<input required autoComplete="off" type="password" value={token} onChange={e => setToken(e.target.value)} /><span className="field-help">Ask your administrator to deliver a one-use token directly. It is never sent by this application as email.</span></label> : <label>Work email<input type="email" autoComplete="username" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@organization.com" /></label>}
         <label>{reset ? 'New password' : 'Password'}<input type="password" required minLength={setup || reset ? 12 : undefined} autoComplete={setup || reset ? 'new-password' : 'current-password'} value={password} onChange={e => setPassword(e.target.value)} aria-describedby="password-hint" /></label>
@@ -39,12 +48,10 @@ export default function Auth({ setup, onAuthenticated }: { setup: boolean; onAut
         {notice && <p className="notice success" role="status">{notice}</p>}
         <button className="button primary wide" disabled={busy}>{busy ? 'Connecting…' : setup ? 'Create organization & enter' : reset ? 'Reset password' : 'Sign in securely'}<Icon name="arrow" /></button>
         {!setup && <button type="button" className="text-button" disabled={busy} onClick={() => { setReset(!reset); setPassword(''); setToken(''); setOtp(''); setError(''); setNotice('') }}>{reset ? 'Back to sign in' : 'Reset password with administrator token'}</button>}
-      </form>
+      </form>}
       <p className="auth-note">Account-based access &middot; Decisions attributed to the signed-in identity</p>
       <div className="auth-footer-meta">
-        <a href="https://opsbridge-demo.onrender.com" target="_blank" rel="noreferrer">Live Demo</a>
-        <span>&middot;</span>
-        <a href="https://github.com/PriyanshuChauhan-007/opsbridge" target="_blank" rel="noreferrer">GitHub Repository</a>
+        <a href="https://github.com/PriyanshuChauhan-007/opsbridge" target="_blank" rel="noreferrer">Source code</a>
         <span>&middot;</span>
         <span>Priyanshu Chauhan</span>
       </div>

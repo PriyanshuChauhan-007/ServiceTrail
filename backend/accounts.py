@@ -11,8 +11,10 @@ from sqlalchemy import delete, func, select, text
 from sqlalchemy.orm import Session
 
 from .database import AdminAudit, AuthSession, LoginThrottle, PasswordRecovery, Site, User, now
+from .demo_seed import (DEMO_USER_IDS, controller_admin, demo_available, is_demo_admin,
+                        is_seeded_persona, issue_controller)
 from .models import (ChangePassword, DisableMFA, NamedInput, OTP, PasswordProof,
-                     ResetPassword, SwitchSite, UserUpdate)
+                     OpenWorkspace, ResetPassword, SwitchPerspective, SwitchSite, UserUpdate)
 from .security import COOKIE, hash_password, token_hash, totp, verify_password
 
 
@@ -232,6 +234,51 @@ def install_accounts(app, database, identity, issue_session, settings, cipher, f
         issue_session(db, response, user, request)
         admin_audit(db, user, "session.site_switched", f"Site {site.id}")
         return {"user": public_user(db, user)}
+
+    def perspective_authority(db, request, user):
+        if settings.environment != "demo" or not is_seeded_persona(db, user, user.role):
+            fail(403, "Perspective switching is unavailable")
+        if user.must_change_password:
+            fail(403, "Initial password change required")
+        administrator = controller_admin(db, request, settings)
+        if administrator:
+            return administrator
+        if is_demo_admin(db, user):
+            return user
+        fail(403, "Perspective switching is unavailable")
+
+    def perspectives(request: Request, user: User = Depends(identity), db: Session = Depends(database)):
+        perspective_authority(db, request, user)
+        users = {item.id: item for item in db.scalars(select(User).where(User.id.in_(DEMO_USER_IDS.values())))}
+        return [{"key": key, "id": users[item_id].id, "name": users[item_id].name, "role": key}
+                for key, item_id in DEMO_USER_IDS.items() if item_id in users and is_seeded_persona(db, users[item_id], key)]
+
+    def switch_perspective(data: SwitchPerspective, request: Request, response: Response,
+                           user: User = Depends(identity), db: Session = Depends(database)):
+        administrator = perspective_authority(db, request, user)
+        target = db.scalar(select(User).where(User.id == DEMO_USER_IDS[data.perspective],
+            User.organization_id == user.organization_id, User.site_id == user.site_id).with_for_update())
+        if not target or not is_seeded_persona(db, target, data.perspective):
+            fail(404, "Perspective is unavailable")
+        admin_audit(db, administrator, "session.perspective_switched", f"From user {user.id}; perspective {data.perspective}; user {target.id}")
+        if not controller_admin(db, request, settings):
+            issue_controller(db, request, response, settings)
+        issue_session(db, response, target, request)
+        return {"user": public_user(db, target)}
+
+    def enter_workspace(data: OpenWorkspace, request: Request, response: Response, db: Session = Depends(database)):
+        administrator = db.scalar(select(User).where(User.id == DEMO_USER_IDS["admin"]).with_for_update())
+        if not administrator or not demo_available(db, settings):
+            fail(404, "Shared workspace is unavailable")
+        issue_controller(db, request, response, settings)
+        issue_session(db, response, administrator, request)
+        admin_audit(db, administrator, "session.workspace_opened", "Public shared example workspace opened")
+        return {"user": public_user(db, administrator)}
+
+    if settings.environment == "demo":
+        app.add_api_route("/api/v1/auth/demo/enter", enter_workspace, methods=["POST"])
+        app.add_api_route("/api/v1/auth/perspectives", perspectives, methods=["GET"])
+        app.add_api_route("/api/v1/auth/perspectives/switch", switch_perspective, methods=["POST"])
 
     @app.get("/api/v1/admin/audit")
     def audit_log(limit: int = 50, offset: int = 0, user: User = Depends(identity), db: Session = Depends(database)):

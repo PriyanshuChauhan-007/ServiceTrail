@@ -1,5 +1,7 @@
 export type Role = 'worker' | 'engineer' | 'supervisor' | 'admin'
+export interface SetupStatus { needs_setup: boolean; demo_available?: boolean }
 export interface User { id: string; name: string; email: string; role: Role; organization_id: string; site_id: string; organization_name: string; site_name: string; active?: boolean; must_change_password?: boolean; mfa_enabled?: boolean }
+export interface Perspective { key: Role; id: string; name: string; role: Role }
 export interface Asset { id: string; code: string; name: string; area: string; criticality: 'low' | 'medium' | 'high' | 'critical'; manufacturer?: string; model?: string; status: string }
 export type IncidentStatus = 'submitted' | 'needs_clarification' | 'ready_for_review' | 'under_review' | 'changes_requested' | 'approved' | 'in_progress' | 'awaiting_verification' | 'resolved' | 'reopened' | 'cancelled'
 export interface ReportInput { asset_id: string; description: string; impact: string; injury_status: 'none' | 'reported' | 'unknown'; safe_state: 'isolated' | 'stopped' | 'running' | 'unknown'; measurements: string; client_id?: string }

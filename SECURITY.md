@@ -34,10 +34,19 @@
   the unlocked session. Clear sensitive drafts on shared devices and protect disks/users at the OS level.
 - The PWA caches only public application files. Offline login is not supported;
   approvals, execution mutations, and evidence uploads must be server-confirmed.
-- Format validation is not antivirus scanning. No storage quota or retention
-  enforcement exists. Bound the deployment until those controls are added.
-- The Render demonstration uses ephemeral SQLite storage (`APP_ENV=demo`) for portfolio review;
-  it is not intended for real production data retention.
+- Format validation is not antivirus scanning. Upload and aggregate evidence
+  quotas exist; a complete retention and malware-scanning policy does not.
+- Explicit `APP_ENV=demo` enables a public shared workspace with synthetic records.
+  Visitors may open the prepared administrator without credentials and use a
+  short-lived controller to switch prepared accounts. This is intentional public
+  access to example data, not secure storage for real reports. Ordinary sign-in
+  does not inherit switching authority; production has no public entry or switch endpoints.
+- The controller has a separate HttpOnly cookie and reserved server-session scope.
+  Ordinary API authentication refuses that scope. Switching rotates the active
+  account cookie, records the initiating administrator, and retains the active
+  account's normal workflow checks. Logout revokes both sessions.
+- The shared Render service uses ephemeral SQLite storage and is not intended
+  for retaining real information. Do not enter private data into the shared workspace.
 - No externally assessed compliance or safety certification is claimed. Rule
   findings cannot prove worker truthfulness, safe isolation or a correct diagnosis.
 - Not yet penetration-tested, load-tested, disaster-recovery-tested or independently

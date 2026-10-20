@@ -100,3 +100,34 @@ test('integration creation returns one-time secret independently of metadata ref
   assert.equal(calls[2].url, '/api/v1/assets/asset%20%2F%204/observations')
   assert.equal(calls.some(call => call.url.includes('one-time-secret')), false)
 })
+
+test('perspectives use authenticated backend endpoints and return the server-confirmed identity', async () => {
+  const calls = []
+  const user = { id: 'confirmed-worker', name: 'Test Worker', role: 'worker' }
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url, options })
+    return new Response(JSON.stringify(options.method === 'POST' ? { user } : [{ key: 'worker', id: user.id, name: user.name, role: user.role }]))
+  }
+  assert.equal((await api.perspectives())[0].key, 'worker')
+  assert.deepEqual((await api.switchPerspective('worker')).user, user)
+  assert.equal(calls[0].url, '/api/v1/auth/perspectives')
+  assert.equal(calls[1].url, '/api/v1/auth/perspectives/switch')
+  assert.equal(calls[1].options.method, 'POST')
+  assert.deepEqual(JSON.parse(calls[1].options.body), { perspective: 'worker' })
+  for (const { options } of calls) {
+    assert.equal(options.credentials, 'same-origin')
+    assert.equal(Object.keys(options.headers).some(key => /role|authorization/i.test(key)), false)
+  }
+  globalThis.fetch = async () => new Response(JSON.stringify({ detail: 'Perspective switching is unavailable' }), { status: 403 })
+  await assert.rejects(api.switchPerspective('admin'), error => error instanceof ApiError && error.status === 403)
+})
+
+test('opening the prepared workspace sends no credentials or role identity', async () => {
+  let received
+  globalThis.fetch = async (url, options) => { received = { url, options }; return new Response(JSON.stringify({ user: { id: 'server-confirmed' } })) }
+  assert.equal((await api.openWorkspace()).user.id, 'server-confirmed')
+  assert.equal(received.url, '/api/v1/auth/demo/enter')
+  assert.equal(received.options.method, 'POST')
+  assert.equal(received.options.credentials, 'same-origin')
+  assert.deepEqual(JSON.parse(received.options.body), {})
+})

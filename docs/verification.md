@@ -4,13 +4,14 @@
 
 | Command / check | Result |
 | --- | --- |
-| `py -3.12 -m pytest -q backend/tests` | 35 passed, 3 explicitly skipped |
+| `py -3.12 -m pytest -q backend/tests` | 61 passed, 3 explicitly skipped |
 | `.venv312/Scripts/python.exe -m compileall -q backend` | Passed |
 | `.venv312/Scripts/python.exe -m pip check` | No broken requirements |
-| `npm test` from `frontend` | 30 passed |
+| `npm test` from `frontend` | 33 passed |
 | `npm run build` from `frontend` | TypeScript and Vite build passed |
 | `npm audit --omit=dev` from `frontend` | 0 reported vulnerabilities at check time; not a security certification |
 | `npm run test:e2e` from `frontend` with Playwright Chromium | 1 real-browser workflow passed against a fresh synthetic SQLite database |
+| `E2E_SHARED_WORKSPACE=true npm run test:e2e -- perspective.spec.ts` from `frontend` | 5 shared-workspace tests passed, including entry, role roundtrip, editable source, execution, verification and logout |
 | `git diff --check` | Passed; Git reports LF/CRLF conversion notices on Windows |
 | HTTP GET `http://127.0.0.1:5173/` | 200 |
 | HTTP GET through web proxy `/api/v1/health` | `status: ok`, API version 1.0.0 |
@@ -41,13 +42,14 @@ and API/evidence/mutations are not intercepted by the shell cache.
   `39167158305`.
 - Docker Compose validation, image build and nginx runtime checks were not possible
   because Docker is unavailable. TLS reverse-proxy operation remains a deployment check.
-- Real Chromium authenticated workflow is now covered by `npm run test:e2e` using a
-  fresh synthetic database; real camera, installed PWA and mobile/tablet acceptance
-  still need target-device testing. No private account was created for testing.
+- Real Chromium authenticated workflow is covered by `npm run test:e2e` using a
+  fresh synthetic database. The shared workspace flow is covered separately with
+  `E2E_SHARED_WORKSPACE=true`; real camera, installed PWA and mobile/tablet
+  acceptance still need target-device testing.
 - No load/penetration/accessibility audit, backup-restore drill or commercial
   compliance assessment was performed.
 - External identity, AI, CMMS, sensor and notification integrations are not active.
 
 The application was started with the new authenticated API. The old process-local
 prototype is retired; no silent migration of its former in-memory records is claimed.
-Use `judge-demo.md` for human acceptance and `release-gates.md` for remaining work.
+Use `using-opsbridge.md` for the shared workspace walkthrough and `release-gates.md` for remaining work.

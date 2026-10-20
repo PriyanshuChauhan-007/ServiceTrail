@@ -18,7 +18,7 @@ import { Brand, Empty, ErrorNotice, Icon, Loading, confirmNavigation } from './c
 import { errorMessage, isReviewer } from './logic'
 import { sameDeviceIdentity } from './deviceContext'
 import { cacheAssets, clearOfflineData, isVaultUnlocked, listDrafts, lockVault, readCachedAssets, registerOfflineShell, vaultStatus } from './offline'
-import type { Asset, Incident, User } from './types'
+import type { Asset, Incident, Perspective, User } from './types'
 
 type View = 'queue' | 'assets' | 'report' | 'drafts' | 'admin' | 'incident' | 'security' | 'notifications' | 'metrics' | 'methods' | 'integrations' | 'dashboard' | 'about'
 export default function App() {
@@ -26,6 +26,7 @@ export default function App() {
   const [deviceUser, setDeviceUser] = useState<User | null>(null)
   const [offlineAccess, setOfflineAccess] = useState(false)
   const [needsSetup, setNeedsSetup] = useState(false)
+  const [sharedAvailable, setSharedAvailable] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [networkFailure, setNetworkFailure] = useState(false)
@@ -35,7 +36,7 @@ export default function App() {
   const boot = useCallback(async () => {
     setLoading(true); setError(''); setNetworkFailure(false)
     try {
-      const status = await api.setupStatus(); setNeedsSetup(status.needs_setup)
+      const status = await api.setupStatus(); setNeedsSetup(status.needs_setup); setSharedAvailable(status.demo_available === true)
       if (!status.needs_setup) {
         try { setUser((await api.me()).user) } catch (e) { if (!(e instanceof ApiError && e.status === 401)) throw e; setUser(null) }
       }
@@ -49,10 +50,10 @@ export default function App() {
   if (deviceUser) return <OfflineWorkspace user={deviceUser} onRevalidated={value => { lockVault(deviceUser.id); setDeviceUser(null); setOfflineAccess(false); authenticated(value) }} onExit={() => { lockVault(deviceUser.id); setDeviceUser(null); setOfflineAccess(false) }} />
   if (offlineAccess) return <OfflineAccess onUnlocked={setDeviceUser} onBack={() => setOfflineAccess(false)} />
   if (error) return <main className="boot-screen"><Brand /><div className="boot-error"><ErrorNotice message={error}><p>Identity must be confirmed by the server before opening site records.</p><button className="button primary" onClick={boot}>Retry connection</button>{networkFailure && <button className="button secondary" onClick={() => setOfflineAccess(true)}>Unlock device vault for offline drafts</button>}</ErrorNotice></div></main>
-  return <><a className="skip-link" href="#main-content">Skip to main content</a>{user ? <Workspace key={`${user.id}:${user.site_id}`} user={user} theme={theme} onToggleTheme={toggleTheme} onSignedOut={signedOut} onUserChanged={authenticated} /> : <><button className="auth-theme button secondary small" onClick={toggleTheme}><Icon name={theme === 'light' ? 'moon' : 'sun'} size={16} />{theme === 'light' ? 'Dark' : 'Light'} mode</button><Auth setup={needsSetup} onAuthenticated={authenticated} /></>}</>
+  return <><a className="skip-link" href="#main-content">Skip to main content</a>{user ? <Workspace key={`${user.id}:${user.site_id}`} user={user} sharedAvailable={sharedAvailable} theme={theme} onToggleTheme={toggleTheme} onSignedOut={signedOut} onUserChanged={authenticated} /> : <><button className="auth-theme button secondary small" onClick={toggleTheme}><Icon name={theme === 'light' ? 'moon' : 'sun'} size={16} />{theme === 'light' ? 'Dark' : 'Light'} mode</button><Auth setup={needsSetup} sharedAvailable={sharedAvailable} onAuthenticated={authenticated} /></>}</>
 }
 
-function Workspace({ user, theme, onToggleTheme, onSignedOut, onUserChanged }: { user: User; theme: string; onToggleTheme: () => void; onSignedOut: () => void; onUserChanged: (user: User) => void }) {
+function Workspace({ user, sharedAvailable, theme, onToggleTheme, onSignedOut, onUserChanged }: { user: User; sharedAvailable: boolean; theme: string; onToggleTheme: () => void; onSignedOut: () => void; onUserChanged: (user: User) => void }) {
   const [view, setView] = useState<View>('queue')
   const [assets, setAssets] = useState<Asset[]>([])
   const [users, setUsers] = useState<User[]>([])
@@ -71,6 +72,7 @@ function Workspace({ user, theme, onToggleTheme, onSignedOut, onUserChanged }: {
   const [logoutBusy, setLogoutBusy] = useState(false)
   const [revision, setRevision] = useState(0)
   const reviewer = isReviewer(user)
+  const [perspectives, setPerspectives] = useState<Perspective[] | null>(null)
   const refreshDrafts = useCallback(() => { if (!isVaultUnlocked(user.id)) { setDraftCount(null); return } listDrafts(user.id).then(values => setDraftCount(values.length)).catch(() => setDraftCount(null)) }, [user.id])
   const refresh = useCallback(async () => {
     if (user.must_change_password) { setLoading(false); return }
@@ -89,6 +91,12 @@ function Workspace({ user, theme, onToggleTheme, onSignedOut, onUserChanged }: {
     setError(problems.join(' ')); setRefreshing(false); setLoading(false); refreshDrafts(); setRevision(value => value + 1)
   }, [user.id, user.site_id, user.must_change_password, reviewer, refreshDrafts])
   useEffect(() => { void refresh() }, [refresh])
+  useEffect(() => {
+    let active = true
+    setPerspectives(null)
+    api.perspectives().then(value => { if (active) setPerspectives(value) }).catch(() => { if (active) setPerspectives(null) })
+    return () => { active = false }
+  }, [user.id, user.role])
   useEffect(() => { document.getElementById('main-content')?.focus(); window.scrollTo({ top: 0, behavior: 'instant' }) }, [view, incidentId])
   function navigate(next: View, saved = false) { if (!saved && !confirmNavigation()) return; setView(next); setLogoutOpen(false); setNotice('') }
   function updated(_value: Incident) { setRevision(value => value + 1) }
@@ -124,8 +132,9 @@ function Workspace({ user, theme, onToggleTheme, onSignedOut, onUserChanged }: {
         </div>
       </div>
     </aside>
-    <div className="workspace-body"><header className="workspace-topbar"><div><span className="topbar-org">{user.organization_name}</span><span className="topbar-divider">/</span><span>{user.site_name}</span></div><span className="topbar-context">{reviewer ? 'SOURCE → REVIEW → RELEASE' : 'OBSERVE → RECORD → HAND OFF'}</span></header>
+    <div className="workspace-body"><header className="workspace-topbar"><div><span className="topbar-org">{user.organization_name}</span><span className="topbar-divider">/</span><span>{user.site_name}</span></div><div className="topbar-right"><span className="topbar-context">{reviewer ? 'SOURCE → REVIEW → RELEASE' : 'OBSERVE → RECORD → HAND OFF'}</span>{perspectives && perspectives.length > 0 && <PerspectiveControl options={perspectives} current={user.role} onChanged={onUserChanged} />}</div></header>
       <main id="main-content" className="main-content" tabIndex={-1}>
+        {sharedAvailable && <p className="notice" role="status"><strong>Shared workspace</strong> · Records are examples, not real operations. Edits are shared.</p>}
         {logoutOpen && <section className="panel signout-panel"><h2>Before you leave this device</h2><p>{draftCount === null ? 'The vault is locked or its draft count is unavailable. Local records are kept unless you explicitly clear them.' : `${draftCount} unsynced drafts on this device.`} Signing out does not submit them.</p><label className="checkbox-label"><input type="checkbox" checked={clearOnLogout} onChange={e => setClearOnLogout(e.target.checked)} />Clear my device drafts and cached assets when signing out. Unsynced work will be deleted.</label><div className="form-actions"><button className="button secondary" onClick={() => setLogoutOpen(false)}>Stay signed in</button><button className="button primary" disabled={logoutBusy} onClick={logout}>{logoutBusy ? 'Signing out…' : clearOnLogout ? 'Clear device data & sign out' : 'Keep device records & sign out'}</button></div></section>}
         {error && <ErrorNotice message={error}><button className="text-button" onClick={refresh} disabled={refreshing}>Retry workspace connection →</button></ErrorNotice>}
         {cachedAssets && <div className="notice warning" role="status">Using encrypted cached assets after network loss. Their status may be stale. No approved incident records are cached. A new report may be saved explicitly as a device draft after a failed network submission.</div>}
@@ -148,6 +157,25 @@ function Workspace({ user, theme, onToggleTheme, onSignedOut, onUserChanged }: {
       </main><footer className="workspace-footer"><Brand compact /><span>{user.site_name} · Accountable manufacturing operations</span><span>No observation is a verified diagnosis.</span></footer>
     </div>
   </div>
+}
+
+function PerspectiveControl({ options, current, onChanged }: { options: Perspective[]; current: User['role']; onChanged: (user: User) => void }) {
+  const [selected, setSelected] = useState(current)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  async function apply() {
+    if (!confirmNavigation()) return
+    setBusy(true); setError('')
+    try { onChanged((await api.switchPerspective(selected)).user) }
+    catch (e) {
+      setError(errorMessage(e))
+      // A dropped response may follow a committed cookie change. Reconcile with
+      // the server without repeating the switch or keeping an assumed identity.
+      try { onChanged((await api.me()).user) } catch { /* Preserve the failure message. */ }
+    }
+    finally { setBusy(false) }
+  }
+  return <div className="perspective-control"><label>View as<select value={selected} onChange={event => setSelected(event.target.value as User['role'])} disabled={busy}>{options.map(option => <option key={option.key} value={option.key}>{option.name} · {option.role}</option>)}</select></label><button className="button secondary small" onClick={apply} disabled={busy || selected === current}>{busy ? 'Applying…' : 'Apply'}</button>{error && <span className="field-help" role="alert">{error}</span>}</div>
 }
 
 function Unavailable({ label, onRetry, busy }: { label: string; onRetry: () => void; busy: boolean }) {

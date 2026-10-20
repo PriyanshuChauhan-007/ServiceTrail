@@ -36,6 +36,7 @@ from .database import (Asset, AuditEvent, AuthSession, Evidence, Incident, Login
 from .models import Action, AssetInput, ChecklistUpdate, CreateReport, EditReport, Login, NewUser, Setup
 from .security import COOKIE, SecurityMiddleware, field_cipher, hash_password, token_hash, verify_password
 from .accounts import admin_audit, install_accounts, verify_mfa
+from .demo_seed import DEMO_SITE_ID, demo_available, is_demo_workspace, revoke_controller, seed_demo
 from .operations import incident_scope, install_operations, method_data, notify
 from .services import analyze, assess, new_checklist
 
@@ -122,9 +123,17 @@ def create_app(settings: Settings | None = None):
 
     @asynccontextmanager
     async def lifespan(app):
-        initialize(engine)
-        yield
-        engine.dispose()
+        try:
+            initialize(engine)
+            if settings.environment == "demo":
+                with sessions() as db:
+                    if engine.dialect.name == "sqlite":
+                        db.connection().exec_driver_sql("BEGIN IMMEDIATE")
+                    seed_demo(db, settings, audit)
+                    db.commit()
+            yield
+        finally:
+            engine.dispose()
 
     app = FastAPI(title="OpsBridge API", version="1.0.0", lifespan=lifespan,
                   docs_url=None,
@@ -149,6 +158,10 @@ def create_app(settings: Settings | None = None):
                 if request.method not in {"GET", "HEAD", "OPTIONS"} and engine.dialect.name == "sqlite":
                     # Serialize local writes before any reads; PostgreSQL uses row locks below.
                     db.connection().exec_driver_sql("BEGIN IMMEDIATE")
+                if settings.environment == "demo" and request.method not in {"GET", "HEAD", "OPTIONS"} and request.url.path.startswith("/api/v1/auth/"):
+                    # Consistent lock order for controller revocation, entry and
+                    # switching, before any per-account/session lock is acquired.
+                    db.scalar(select(Site).where(Site.id == DEMO_SITE_ID).with_for_update())
                 yield db
                 db.commit()
             except Exception:
@@ -163,7 +176,7 @@ def create_app(settings: Settings | None = None):
         if not session or session.expires_at <= int(time.time()):
             fail(401, "Session expired or invalid")
         query = select(User).where(User.id == session.user_id)
-        security_path = request.url.path.startswith(("/api/v1/auth/change-password", "/api/v1/auth/sessions", "/api/v1/auth/mfa/"))
+        security_path = request.url.path.startswith(("/api/v1/auth/change-password", "/api/v1/auth/sessions", "/api/v1/auth/mfa/", "/api/v1/auth/perspectives/"))
         security_write = security_path and request.method not in {"GET", "HEAD", "OPTIONS"}
         if security_write:
             query = query.with_for_update()
@@ -174,6 +187,8 @@ def create_app(settings: Settings | None = None):
             if not session or session.expires_at <= int(time.time()):
                 fail(401, "Session expired or invalid")
         if not user or not user.active or session.site_id != user.site_id:
+            fail(401, "Session expired or invalid")
+        if settings.environment != "demo" and is_demo_workspace(db, user):
             fail(401, "Session expired or invalid")
         if user.must_change_password and request.method not in {"GET", "HEAD", "OPTIONS"} and not security_path:
             fail(403, "Initial password change required")
@@ -227,7 +242,10 @@ def create_app(settings: Settings | None = None):
 
     @app.get("/api/v1/setup/status")
     def setup_status(db: Session = Depends(database)):
-        return {"needs_setup": not db.get(SetupLock, 1).completed}
+        result = {"needs_setup": not db.get(SetupLock, 1).completed}
+        if settings.environment == "demo":
+            result["demo_available"] = demo_available(db, settings)
+        return result
 
     @app.post("/api/v1/setup", status_code=201)
     def setup(data: Setup, request: Request, response: Response, db: Session = Depends(database)):
@@ -271,7 +289,7 @@ def create_app(settings: Settings | None = None):
             throttles.append(throttle)
         user = db.scalar(select(User).where(User.email == data.email).with_for_update())
         valid = verify_password(data.password, user.password_hash if user else DUMMY_PASSWORD_HASH)
-        if not user or not valid or not user.active:
+        if not user or not valid or not user.active or (settings.environment != "demo" and is_demo_workspace(db, user)):
             if user:
                 admin_audit(db, user, "session.login_failed")
             db.commit()  # Failed attempts must survive the HTTP error/rollback.
@@ -281,6 +299,8 @@ def create_app(settings: Settings | None = None):
         for throttle in throttles:
             if throttle.key == token_hash("email:" + data.email):
                 throttle.attempts = 0
+        # An ordinary account sign-in never inherits prepared-workspace control.
+        revoke_controller(db, request, response, settings)
         issue_session(db, response, user, request)
         admin_audit(db, user, "session.login")
         return {"user": public_user(db, user)}
@@ -291,6 +311,7 @@ def create_app(settings: Settings | None = None):
 
     @app.post("/api/v1/auth/logout")
     def logout(request: Request, response: Response, db: Session = Depends(database)):
+        revoke_controller(db, request, response, settings)
         token = request.cookies.get(COOKIE)
         if token and len(token) <= 200:
             session = db.get(AuthSession, token_hash(token))

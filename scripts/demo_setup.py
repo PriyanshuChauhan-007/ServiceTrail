@@ -11,9 +11,10 @@ import secrets
 import urllib.error
 import urllib.request
 import uuid
+from typing import Any, cast
 
 
-def request(base: str, method: str, path: str, payload: dict | None = None, cookie: str | None = None):
+def request(base: str, method: str, path: str, payload: dict | None = None, cookie: str | None = None) -> tuple[dict[str, Any], str | None]:
     body = json.dumps(payload).encode() if payload is not None else None
     headers = {"Content-Type": "application/json"} if body else {}
     if cookie:
@@ -23,14 +24,14 @@ def request(base: str, method: str, path: str, payload: dict | None = None, cook
         with urllib.request.urlopen(req) as response:
             raw_cookie = response.headers.get("Set-Cookie", "")
             value = json.loads(response.read().decode()) if response.length != 0 else None
-            return value, raw_cookie.split(";", 1)[0] if raw_cookie else cookie
+            return cast(dict[str, Any], value), raw_cookie.split(";", 1)[0] if raw_cookie else cookie
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode(errors="replace")
         raise SystemExit(f"{method} {path} failed with HTTP {exc.code}: {detail}") from exc
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Populate a synthetic OpsBridge recruiter demo")
+    parser = argparse.ArgumentParser(description="Populate a synthetic OpsBridge workspace")
     parser.add_argument("--base-url", required=True, help="For example https://opsbridge-demo.onrender.com")
     parser.add_argument("--admin-email", required=True)
     parser.add_argument("--admin-password", required=True)
