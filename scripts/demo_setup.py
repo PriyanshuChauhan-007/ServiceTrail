@@ -139,9 +139,12 @@ def create_demo_data(db_path_or_url: str | None = None, reset: bool = False):
 
     # If local SQLite and reset requested, remove existing file
     if reset and db_path_or_url.startswith("sqlite"):
-        from sqlalchemy.engine import make_url
-        filename = make_url(db_path_or_url).database
-        if filename and os.path.exists(filename):
+        try:
+            from sqlalchemy import make_url
+            filename = make_url(db_path_or_url).database
+        except ImportError:
+            filename = db_path_or_url.split("sqlite:///", 1)[-1] if "sqlite:///" in db_path_or_url else None
+        if filename and filename != ":memory:" and os.path.exists(filename):
             print(f"Reset requested: removing existing database at {filename}")
             os.remove(filename)
 
