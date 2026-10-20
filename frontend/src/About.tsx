@@ -42,7 +42,7 @@ export default function About() {
       <div className="table-wrapper"><table className="audit-table"><thead><tr><th>Role</th><th>What they do</th><th>What they cannot do</th></tr></thead><tbody>
         <tr><td>Worker</td><td>Report observations, answer questions, and record their own or assigned work.</td><td>Approve a report or verify their own execution.</td></tr>
         <tr><td>Engineer</td><td>Review sources, request clarification, release work, and verify others' execution.</td><td>Approve their own report or replace the worker's source statement.</td></tr>
-        <tr><td>Supervisor</td><td>Review the site queue, register equipment, and make independent review decisions.</td><td>Skip the required source, approval, and completion checks.</td></tr>
+        <tr><td>Supervisor</td><td>Coordinate the site queue, register equipment, review handoffs, and independently verify completed work.</td><td>Approve their own report, change another person's source, or skip the required checks.</td></tr>
         <tr><td>Administrator</td><td>Register assets, create team accounts and sites, and manage access.</td><td>Approve their own report or silently rewrite incident history.</td></tr>
       </tbody></table></div>
     </section>

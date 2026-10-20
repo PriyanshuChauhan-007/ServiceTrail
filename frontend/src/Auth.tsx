@@ -49,12 +49,8 @@ export default function Auth({ setup, sharedAvailable = false, onAuthenticated }
         <button className="button primary wide" disabled={busy}>{busy ? 'Connecting…' : setup ? 'Create organization & enter' : reset ? 'Reset password' : 'Sign in securely'}<Icon name="arrow" /></button>
         {!setup && <button type="button" className="text-button" disabled={busy} onClick={() => { setReset(!reset); setPassword(''); setToken(''); setOtp(''); setError(''); setNotice('') }}>{reset ? 'Back to sign in' : 'Reset password with administrator token'}</button>}
       </form>}
-      <p className="auth-note">Account-based access &middot; Decisions attributed to the signed-in identity</p>
-      <div className="auth-footer-meta">
-        <a href="https://github.com/PriyanshuChauhan-007/opsbridge" target="_blank" rel="noreferrer">Source code</a>
-        <span>&middot;</span>
-        <span>Priyanshu Chauhan</span>
-      </div>
+      <p className="auth-note">Each report, review, and handoff stays linked to the account that made it.</p>
+      <div className="auth-footer-meta"><span>Observe the problem. Record the decision. Check the result.</span></div>
     </div></section>
   </main>
 }

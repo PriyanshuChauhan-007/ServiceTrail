@@ -25,7 +25,7 @@ changes made by other visitors may be visible. Never enter private information.
 | Administrator | Work register | Register equipment, create accounts/sites, inspect all site records |
 | Worker | My notebook | Report a problem, revise their source, complete their released checklist |
 | Engineer | Work register | Analyze sources, request clarification, approve, verify others' work |
-| Supervisor | Work register | Review the queue, register assets, and make review decisions |
+| Supervisor | Work register | Coordinate the queue, register assets, review handoffs, and independently verify completed work |
 
 ## Explore the prepared records
 

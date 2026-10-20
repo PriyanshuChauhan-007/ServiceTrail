@@ -19,7 +19,7 @@ DEMO_PERSONAS = {
     "worker": {"name": "Jordan Ellis", "email": "worker@demo.opsbridge.internal", "password": "OpsBridge-Demo-Worker-2026!"},
     "engineer": {"name": "Morgan Chen", "email": "engineer@demo.opsbridge.internal", "password": "OpsBridge-Demo-Engineer-2026!"},
     "supervisor": {"name": "Taylor Brooks", "email": "supervisor@demo.opsbridge.internal", "password": "OpsBridge-Demo-Supervisor-2026!"},
-    "admin": {"name": "Casey Rivera", "email": "admin@demo.opsbridge.internal", "password": "OpsBridge-Demo-Admin-2026!"},
+    "admin": {"name": "Priyanshu Chauhan", "email": "admin@demo.opsbridge.internal", "password": "OpsBridge-Demo-Admin-2026!"},
 }
 DEMO_ORGANIZATION = "Northstar Works"
 DEMO_SITE = "North Plant"
@@ -100,7 +100,14 @@ def seed_demo(db: Session, settings, audit) -> None:
     # The caller owns a transaction. SQLite's BEGIN IMMEDIATE and this PostgreSQL
     # row lock serialize first startup across process workers and manual setup.
     lock = db.scalar(select(SetupLock).where(SetupLock.id == 1).with_for_update())
-    if not lock or lock.completed or db.scalar(select(User.id).limit(1)) or db.scalar(select(Organization.id).limit(1)):
+    if lock and lock.completed:
+        marker = db.get(AdminAudit, DEMO_SEED_EVENT_ID)
+        if marker and marker.action == "demo.seeded":
+            administrator = db.get(User, DEMO_USER_IDS["admin"])
+            if administrator and administrator.name != DEMO_PERSONAS["admin"]["name"]:
+                administrator.name = DEMO_PERSONAS["admin"]["name"]
+        return
+    if not lock or db.scalar(select(User.id).limit(1)) or db.scalar(select(Organization.id).limit(1)):
         return
 
     organization = Organization(id=DEMO_ORGANIZATION_ID, name=DEMO_ORGANIZATION)
