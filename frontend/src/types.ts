@@ -18,4 +18,13 @@ export interface Notification { id: string; title: string; message: string; inci
 export interface Integration { id: string; name: string; created_at?: string; revoked_at?: string | null; active?: boolean }
 export interface Observation { id: string; external_id: string; observed_at: string; measurements: Record<string, unknown>; integration_id?: string; integration_name?: string; created_at?: string }
 export interface Metrics { counts: Record<string, number>; total?: number; overdue: number; median_resolution_minutes: number | null }
+export interface Dashboard {
+  total: number
+  counts: Record<string, number>
+  overdue: number
+  priority_counts: Record<string, number>
+  resolution: { count: number; median_minutes: number | null; avg_minutes: number | null }
+  asset_frequency: { code: string; name: string; area: string; total_count: number }[]
+  recent_resolved: { number: string; created_at: string; resolved_at: string; duration_minutes: number }[]
+}
 export interface AdminAudit { items: { id: string; action: string; actor_name: string; note: string; at: string }[]; total: number }

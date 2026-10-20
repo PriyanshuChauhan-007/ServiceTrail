@@ -39,3 +39,10 @@ def test_missing_frontend_build_leaves_root_unhandled(monkeypatch, tmp_path):
 
     with TestClient(app) as client:
         assert client.get("/").status_code == 404
+
+
+def test_demo_environment_starts_uninitialized_without_seeded_accounts():
+    app = create_app(Settings(database_url="sqlite:///:memory:", environment="demo"))
+    with TestClient(app) as client:
+        status = client.get("/api/v1/setup/status").json()
+        assert status["needs_setup"] is True

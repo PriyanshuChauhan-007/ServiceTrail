@@ -9,12 +9,22 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 
+import time
+
+_last_now_ts = 0.0
+
+
 def uid():
     return str(uuid4())
 
 
 def now():
-    return datetime.now(timezone.utc).isoformat()
+    global _last_now_ts
+    t = time.time()
+    if t <= _last_now_ts:
+        t = _last_now_ts + 0.000001
+    _last_now_ts = t
+    return datetime.fromtimestamp(t, timezone.utc).isoformat()
 
 
 class Base(DeclarativeBase):

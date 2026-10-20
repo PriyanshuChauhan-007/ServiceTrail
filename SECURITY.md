@@ -2,14 +2,20 @@
 
 ## Implemented boundaries
 
-- PBKDF2-HMAC-SHA256 passwords with independent salts; random sessions stored only
-  as token digests, revocable at logout and expiring after 12 hours.
+- PBKDF2-HMAC-SHA256 passwords with 600,000 iterations and independent random salts;
+  random sessions stored only as SHA-256 token digests, revocable at logout and expiring after 12 hours.
 - HTTP-only SameSite=Strict API cookies. Secure cookies and exact HTTPS origin are
   mandatory in production; production requires PostgreSQL.
 - Authenticated role enforcement, organization/site scoping and independent
   approval/verification. Client-supplied actor names or roles are rejected.
 - Optimistic versions with serialized writes/row locks. No client success fallback
   after workflow rejection. Stable client IDs deduplicate uncertain offline creates.
+- Multi-factor authentication (TOTP RFC 6238) supported with authenticator apps,
+  one-use recovery codes, and administrator-issued one-time password recovery tokens.
+- Mandatory first-login password rotation for newly provisioned user accounts.
+- User activation and deactivation controls enforced server-side.
+- Encrypted device vault using Web Crypto API (PBKDF2-SHA256 with 600,000 iterations,
+  AES-256-GCM authenticated encryption) for account- and site-bound offline drafts.
 - Evidence is access-controlled and size/type/content validated, with sandboxed
   download headers. JSON exports include provenance but never session/password data.
 - Browser cross-origin writes are refused. Request bodies are bounded and login
@@ -21,16 +27,17 @@
 
 - A fresh deployment must be private until the intended administrator completes setup.
 - Organization/site isolation exists, but there is not yet a complete self-service
-  multi-organization/site administration or account lifecycle product.
-- No SSO, MFA, password recovery, required first-login password rotation or user
-  deactivation interface yet. Assess these before onboarding customer users.
-- Device IndexedDB is not encrypted; account scoping is an application convention,
-  not protection against someone with browser/device access. Clear sensitive drafts
-  on shared devices and protect disks/users at the OS level.
+  multi-organization/site administration or enterprise account lifecycle product.
+- Enterprise SSO (SAML/OIDC), bulk directory sync (SCIM), and hardware security keys (FIDO2/WebAuthn)
+  are not yet supported.
+- Device IndexedDB stores encrypted draft ciphertext; keys exist in memory only during
+  the unlocked session. Clear sensitive drafts on shared devices and protect disks/users at the OS level.
 - The PWA caches only public application files. Offline login is not supported;
-  approvals and execution mutations must be server-confirmed.
+  approvals, execution mutations, and evidence uploads must be server-confirmed.
 - Format validation is not antivirus scanning. No storage quota or retention
   enforcement exists. Bound the deployment until those controls are added.
+- The Render demonstration uses ephemeral SQLite storage (`APP_ENV=demo`) for portfolio review;
+  it is not intended for real production data retention.
 - No externally assessed compliance or safety certification is claimed. Rule
   findings cannot prove worker truthfulness, safe isolation or a correct diagnosis.
 - Not yet penetration-tested, load-tested, disaster-recovery-tested or independently

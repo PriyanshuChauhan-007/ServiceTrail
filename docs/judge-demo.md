@@ -1,10 +1,19 @@
 # OpsBridge acceptance walkthrough
 
-This replaces the retired hackathon single-operator demo. Use a private local
-deployment and test-only observations, never a live factory fault or real private
-evidence for assessment. Start with the root README setup instructions.
+This guide walks through evaluating OpsBridge as an accountable manufacturing incident coordination system.
+It can be evaluated either locally or via the hosted live demo:
+- **Live Demo Instance**: [https://opsbridge-demo.onrender.com](https://opsbridge-demo.onrender.com)
+- **GitHub Repository**: [https://github.com/PriyanshuChauhan-007/opsbridge](https://github.com/PriyanshuChauhan-007/opsbridge)
 
-## Prepare
+## Demo data
+
+There are no public seeded accounts, shared passwords or browser role switchers.
+Complete first-run setup, create one asset and provision separate worker and
+engineer accounts. To avoid repeating data entry, use the additive
+`scripts/demo_setup.py` helper with credentials supplied at runtime. It prints
+new synthetic credentials once and never stores them in the repository.
+
+## Prepare (Manual Setup Alternative)
 
 1. Complete organization/site/admin setup using credentials you choose yourself.
 2. Create an asset, for example a press with a real site-local code and area.
@@ -53,8 +62,7 @@ evidence for assessment. Start with the root README setup instructions.
   idempotent if the original response was lost; HTTP conflicts never become success.
 - Open a record in two clients, advance one, then attempt the stale action in the
   other. The server rejects it with 409 and requests a refresh.
-- Fresh reload/offline identity, encrypted device records, attachments and approval
-  sync are not implemented. The shell alone is not a fully disconnected authenticated app.
+- Device drafts use an authenticated Web Crypto AES-256-GCM encrypted vault. Disconnected authentication, offline approval, offline execution mutations, and offline attachment uploads are intentionally not supported; the app shell alone is not a fully disconnected authenticated app.
 
 ## Defensible project explanation
 

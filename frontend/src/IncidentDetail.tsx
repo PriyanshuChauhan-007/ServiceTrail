@@ -40,6 +40,12 @@ export default function IncidentDetail({ id, user, users, assets, onBack, onUpda
     try { downloadJson(await api.export(id), `${incident?.number || 'incident'}-audit.json`); setSuccess('Audit JSON downloaded from the server.') }
     catch (e) { setError(errorMessage(e)) } finally { setBusy(false) }
   }
+  async function exportCsv() {
+    if (!incident) return
+    setBusy(true); setError('')
+    try { await api.exportCsv(id, `${incident.number}-audit.csv`); setSuccess('Audit CSV downloaded from the server.') }
+    catch (e) { setError(errorMessage(e)) } finally { setBusy(false) }
+  }
   if (loading) return <Loading text="Opening the source record…" />
   if (!incident) return <><button className="text-button" onClick={onBack}>← Back to register</button><ErrorNotice message={error || 'Incident unavailable.'}><button className="button secondary" onClick={refresh} disabled={busy}>Retry loading record</button></ErrorNotice></>
   const reviewer = isReviewer(user)
@@ -48,7 +54,7 @@ export default function IncidentDetail({ id, user, users, assets, onBack, onUpda
   const executable = canExecute(incident, user)
   const disabled = busy || !online
   return <article className="incident-detail">
-    <div className="detail-topbar"><button className="text-button" onClick={onBack}>← Work register</button><div><button className="button ghost small" onClick={refresh} disabled={busy}>Refresh source</button><button className="button secondary small" onClick={exportRecord} disabled={disabled}><Icon name="download" size={16} />Audit JSON</button></div></div>
+    <div className="detail-topbar"><button className="text-button" onClick={onBack}>← Work register</button><div><button className="button ghost small" onClick={refresh} disabled={busy}>Refresh source</button><button className="button secondary small" onClick={exportRecord} disabled={disabled}><Icon name="download" size={16} />Audit JSON</button><button className="button secondary small" onClick={exportCsv} disabled={disabled}><Icon name="download" size={16} />Audit CSV</button></div></div>
     <header className="incident-header"><div className="incident-title"><p className="eyebrow">INCIDENT RECORD <span className="mono">/ {incident.number}</span></p><h1>{incident.asset?.name || 'Asset report'}</h1><p className="asset-eyebrow">{incident.asset?.code} <span>/ {incident.asset?.area}</span></p></div><div className="detail-status"><Badge status={incident.status} /><span className="mono version-label">SOURCE v{sourceVersion(incident)} / RECORD r{incident.version}</span><span className={`priority priority-${incident.priority}`}>{incident.priority} priority</span></div></header>
     <div className="detail-metadata"><div><span>Reported by</span><strong>{incident.reporter.name}</strong></div><div><span>Created</span><strong>{dateTime(incident.created_at)}</strong></div><div><span>Assigned to</span><strong>{incident.assigned_to?.name || 'Not assigned'}</strong></div><div><span>Due</span><strong>{dateTime(incident.due_at)}</strong></div></div>
     <div className="next-step-banner"><span className="eyebrow">NEXT RESPONSIBILITY</span><strong>{nextStep(incident)}</strong></div>

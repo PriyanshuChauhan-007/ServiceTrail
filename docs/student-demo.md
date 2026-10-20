@@ -32,18 +32,14 @@ may sleep when idle, and synthetic data should be used.
 Do not put the Fernet key or any account password in GitHub, screenshots, the
 README or your resume.
 
-## Create synthetic demo data
+## Live Demo URL & Synthetic Data
 
-Use fictional values such as:
+- **Live URL**: `https://opsbridge-demo.onrender.com`
+- **GitHub Repository**: `https://github.com/PriyanshuChauhan-007/opsbridge`
 
-- Organization: `Northstar Manufacturing Demo`
-- Site: `Acceptance Plant`
-- Asset: `PRESS-07`
-- Worker: `Demo Worker`
-- Engineer: `Demo Engineer`
-
-Do not upload real incident reports, employee information, production data or
-real equipment measurements.
+The live environment starts with first-run setup. It has no shared accounts,
+default passwords or role switcher. Create synthetic evaluation data using the
+additive helper below.
 
 To avoid entering every record during an interview, run the repository helper
 from a private terminal after first-run setup:
@@ -60,32 +56,27 @@ The helper is additive; it does not delete existing records.
 
 Show this sequence in three to five minutes:
 
-1. Sign in as the worker.
-2. Create a field report for `PRESS-07`.
-3. Sign in as the engineer in a second browser context.
+1. Sign in as the worker account created by the administrator.
+2. Create a field report for `PRESS-07`. Note incomplete safe state to show deterministic gap detection.
+3. Sign in as the independent engineer in a separate browser profile.
 4. Open the report and request clarification.
-5. Return to the worker account and revise the source record.
-6. Analyze the current report as the engineer.
-7. Approve the work only after independent review.
-8. Return to the worker account and complete the checklist.
-9. Submit the work for verification.
-10. Verify and close it as the engineer.
-11. Open the activity trail and explain the versioned audit history.
+5. Return to the worker account and revise the source record. Notice that editing invalidates the previous review.
+6. Return to the engineer account, analyze findings, and **Approve & release work**. Notice that the engineer cannot execute the work they approved (separation of duties).
+7. Return to the worker account, open **Released work**, and complete the checklist with required step notes.
+8. Submit the completion handoff. Status becomes **Awaiting verification**, not closed.
+9. Sign in as an independent reviewer, inspect saved work, add a verification note, and **Verify & Close**.
+10. Open the activity trail or click **Export CSV/JSON** to inspect the versioned audit history.
 
 The important story is not the number of screens. Explain that the server owns
 the workflow, roles, report versions and approval rules; the browser is not
 trusted to grant permissions.
 
-## Resume link
-
-Use the generated Render URL as the live demo link. Label it clearly:
+## Resume & portfolio links
 
 ```text
-Live demo: https://your-service-name.onrender.com
+Live demo: https://opsbridge-demo.onrender.com
+GitHub: https://github.com/PriyanshuChauhan-007/opsbridge
 ```
-
-Also include the GitHub repository and, ideally, a short screen recording. The
-live service is a demonstration environment and may sleep or reset its data.
 
 ## Troubleshooting
 

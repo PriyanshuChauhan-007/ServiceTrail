@@ -17,6 +17,7 @@ export default function Auth({ setup, onAuthenticated }: { setup: boolean; onAut
   const [otp, setOtp] = useState('')
   const [recovery, setRecovery] = useState(false)
   const [notice, setNotice] = useState('')
+
   async function submit(event: FormEvent) {
     event.preventDefault(); setBusy(true); setError('')
     try {
@@ -27,7 +28,7 @@ export default function Auth({ setup, onAuthenticated }: { setup: boolean; onAut
   }
   return <main id="main-content" className="auth-layout" tabIndex={-1}>
     <section className="auth-story"><Brand /><div className="auth-statement"><p className="eyebrow">FROM THE FLOOR. TO A CLEAR DECISION.</p><h1>Good operations<br />start with the<br /><em>whole story.</em></h1><p>A shared record of the asset, the observation, and the people accountable for what happens next.</p></div><div className="auth-foot"><span>01 / Observe</span><span>02 / Review</span><span>03 / Verify</span></div></section>
-    <section className="auth-form"><div className="auth-form-inner"><p className="eyebrow">{setup ? 'YOUR FIRST SHIFT WITH OPSBRIDGE' : reset ? 'ACCOUNT RECOVERY / ONE-USE TOKEN' : 'WELCOME BACK'}</p><h2>{setup ? 'Set up your operations.' : reset ? 'Reset your password.' : 'Your workspace awaits.'}</h2><p className="muted">{setup ? 'Create your site and first administrator. Then register real assets and invite your team.' : reset ? 'Use the token delivered directly by your administrator. Existing MFA remains required at the next sign-in.' : 'Sign in with the account your site administrator created.'}</p>
+    <section className="auth-form"><div className="auth-form-inner"><p className="eyebrow">{setup ? 'YOUR FIRST SHIFT WITH OPSBRIDGE' : reset ? 'ACCOUNT RECOVERY / ONE-USE TOKEN' : 'WELCOME BACK'}</p><h2>{setup ? 'Set up your operations.' : reset ? 'Reset your password.' : 'Your workspace awaits.'}</h2><p className="muted">{setup ? 'Create your site and first administrator. Then register assets and invite the review team.' : reset ? 'Use the token delivered directly by your administrator. Existing MFA remains required at the next sign-in.' : 'Sign in with the account your site administrator created.'}</p>
       <form onSubmit={submit} className="form-stack">
         {setup && <><label>Organization<input required value={organization} onChange={e => setOrganization(e.target.value)} autoComplete="organization" placeholder="Organization name" maxLength={160} /></label><label>Site<input required value={site} onChange={e => setSite(e.target.value)} placeholder="e.g. North manufacturing plant" maxLength={160} /></label><label>Your full name<input required value={name} onChange={e => setName(e.target.value)} autoComplete="name" maxLength={160} /></label></>}
         {reset ? <label>Administrator-issued reset token<input required autoComplete="off" type="password" value={token} onChange={e => setToken(e.target.value)} /><span className="field-help">Ask your administrator to deliver a one-use token directly. It is never sent by this application as email.</span></label> : <label>Work email<input type="email" autoComplete="username" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@organization.com" /></label>}
@@ -38,7 +39,15 @@ export default function Auth({ setup, onAuthenticated }: { setup: boolean; onAut
         {notice && <p className="notice success" role="status">{notice}</p>}
         <button className="button primary wide" disabled={busy}>{busy ? 'Connecting…' : setup ? 'Create organization & enter' : reset ? 'Reset password' : 'Sign in securely'}<Icon name="arrow" /></button>
         {!setup && <button type="button" className="text-button" disabled={busy} onClick={() => { setReset(!reset); setPassword(''); setToken(''); setOtp(''); setError(''); setNotice('') }}>{reset ? 'Back to sign in' : 'Reset password with administrator token'}</button>}
-      </form><p className="auth-note">Account-based access · Decisions attributed to the signed-in person</p>
+      </form>
+      <p className="auth-note">Account-based access &middot; Decisions attributed to the signed-in identity</p>
+      <div className="auth-footer-meta">
+        <a href="https://opsbridge-demo.onrender.com" target="_blank" rel="noreferrer">Live Demo</a>
+        <span>&middot;</span>
+        <a href="https://github.com/PriyanshuChauhan-007/opsbridge" target="_blank" rel="noreferrer">GitHub Repository</a>
+        <span>&middot;</span>
+        <span>Priyanshu Chauhan</span>
+      </div>
     </div></section>
   </main>
 }
