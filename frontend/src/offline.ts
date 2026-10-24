@@ -14,7 +14,7 @@ interface Sealed { iv: number[]; ciphertext: ArrayBuffer }
 interface VaultRecord extends VaultInfo, Sealed { vault_id: string; salt: number[] }
 interface SecureRecord extends Sealed { user_id: string; kind: 'draft' | 'assets'; record_id: string }
 interface Unlocked { key: CryptoKey; vault_id: string; user: User }
-const DATABASE = 'opsbridge-device-v1'
+const DATABASE = 'servicetrail-device-v1'
 const LEGACY_DRAFTS = 'drafts'
 const LEGACY_ASSETS = 'assets'
 const VAULTS = 'vaults'
@@ -22,7 +22,7 @@ const RECORDS = 'secure_records'
 const ITERATIONS = 600_000
 const unlocked = new Map<string, Unlocked>()
 const encode = (value: string) => new TextEncoder().encode(value)
-const aad = (user: string, kind: string, id: string) => encode(JSON.stringify(['opsbridge-v2', user, kind, id]))
+const aad = (user: string, kind: string, id: string) => encode(JSON.stringify(['servicetrail-v2', user, kind, id]))
 let channel: BroadcastChannel | undefined
 
 function requireId(value: unknown, field: string): asserts value is string {
@@ -34,7 +34,7 @@ function requireCrypto() {
 function deviceChannel() {
   if (typeof window === 'undefined' || typeof BroadcastChannel === 'undefined') return undefined
   if (!channel) {
-    channel = new BroadcastChannel('opsbridge-device-lock')
+    channel = new BroadcastChannel('servicetrail-device-lock')
     channel.onmessage = event => { if (event.data?.type === 'lock' && typeof event.data.user_id === 'string') unlocked.delete(event.data.user_id) }
     window.addEventListener('pagehide', () => unlocked.clear())
   }
@@ -60,7 +60,7 @@ function openDatabase(): Promise<IDBDatabase> {
       }
     }
     request.onerror = () => { rejected = true; reject(request.error ?? new Error('Cannot open device storage')) }
-    request.onblocked = () => { rejected = true; reject(new Error('Device storage upgrade blocked. Close other OpsBridge tabs and retry.')) }
+    request.onblocked = () => { rejected = true; reject(new Error('Device storage upgrade blocked. Close other ServiceTrail tabs and retry.')) }
     request.onsuccess = () => {
       if (rejected) { request.result.close(); return }
       request.result.onversionchange = () => request.result.close()
@@ -266,6 +266,6 @@ export async function clearOfflineData(userId: string): Promise<void> {
 export function registerOfflineShell(): void {
   if (!import.meta.env.PROD || typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return
   void navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' }).catch(error => {
-    console.error('OpsBridge offline shell registration failed', error)
+    console.error('ServiceTrail offline shell registration failed', error)
   })
 }

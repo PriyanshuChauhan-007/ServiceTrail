@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: opsbridge-demo
+    name: servicetrail-demo
     runtime: docker
     plan: free
     dockerfilePath: ./Dockerfile
@@ -17,4 +17,4 @@ services:
         sync: false
       # Render's container filesystem is intentionally ephemeral for this demo.
       - key: DATABASE_URL
-        value: sqlite:///./data/opsbridge.db
+        value: sqlite:///./data/servicetrail.db

@@ -1,6 +1,6 @@
-# OpsBridge product contract
+# ServiceTrail product contract
 
-Manufacturing-first. New authenticated application lives under `/api/v1`. Legacy `/api/bridge` endpoints must not remain an unauthenticated mutation bypass; retire them (410) or remove them. Rule-based extraction is assistive, not a verified diagnosis. No seeded users, passwords, fabricated measurements, or claims of compliance.
+Field-service-first. ServiceTrail records assignments, technician visits, evidence, work performed, confirmation, and follow-up. New authenticated application lives under `/api/v1`. Legacy `/api/bridge` endpoints must not remain an unauthenticated mutation bypass; retire them (410) or remove them. Rule-based checks help complete records; they are not diagnosis. No seeded users, passwords, fabricated measurements, or claims of compliance.
 
 ## Identity and setup
 - `GET /api/v1/setup/status` => `{needs_setup: boolean}`.

@@ -30,8 +30,8 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [networkFailure, setNetworkFailure] = useState(false)
-  const [theme, setTheme] = useState(() => { try { return localStorage.getItem('opsbridge-theme') === 'dark' ? 'dark' : 'light' } catch { return 'light' } })
-  useEffect(() => { document.documentElement.dataset.theme = theme; try { localStorage.setItem('opsbridge-theme', theme) } catch { /* Theme still works without persistence. */ } }, [theme])
+  const [theme, setTheme] = useState(() => { try { return localStorage.getItem('servicetrail-theme') === 'dark' ? 'dark' : 'light' } catch { return 'light' } })
+  useEffect(() => { document.documentElement.dataset.theme = theme; try { localStorage.setItem('servicetrail-theme', theme) } catch { /* Theme still works without persistence. */ } }, [theme])
   useEffect(() => { if (import.meta.env.PROD) registerOfflineShell() }, [])
   const boot = useCallback(async () => {
     setLoading(true); setError(''); setNetworkFailure(false)
@@ -121,7 +121,7 @@ function Workspace({ user, sharedAvailable, theme, onToggleTheme, onSignedOut, o
   const nav = (next: View, title: string, icon: 'book' | 'grid' | 'asset' | 'people' | 'plus' = 'book') => <button aria-current={view === next ? 'page' : undefined} onClick={() => navigate(next)}><Icon name={icon} /><span>{title}</span></button>
   return <div className={`app-shell ${reviewer ? 'desk-workspace' : 'field-workspace'}`}>
     <aside className="sidebar"><div className="sidebar-top"><Brand /><div className="workspace-label"><span className="live-dot" />{reviewer ? 'OPERATIONS DESK' : 'FIELD NOTEBOOK'}</div></div>
-      <nav className="main-nav" aria-label="Workspace">{!user.must_change_password && <>{nav('queue', reviewer ? 'Work register' : 'My notebook', reviewer ? 'grid' : 'book')}{['worker', 'admin'].includes(user.role) && <button aria-current={view === 'report' ? 'page' : undefined} onClick={() => report()}><Icon name="plus" /><span>New field report</span></button>}{nav('assets', 'Asset register', 'asset')}{nav('drafts', `Device drafts${draftCount !== null ? ` · ${draftCount}` : ''}`)}{nav('notifications', 'Notifications')}{reviewer && <>{nav('methods', 'Work methods')}{nav('dashboard', 'Site dashboard', 'grid')}{nav('metrics', 'Operations metrics', 'grid')}</>}{user.role === 'admin' && <>{nav('admin', 'Site & team', 'people')}{nav('integrations', 'Inbound sources', 'asset')}</>}</>}{nav('security', 'Account security')}{nav('about', 'About OpsBridge', 'book')}</nav>
+      <nav className="main-nav" aria-label="Workspace">{!user.must_change_password && <>{nav('queue', reviewer ? 'Work register' : 'My notebook', reviewer ? 'grid' : 'book')}{['worker', 'admin'].includes(user.role) && <button aria-current={view === 'report' ? 'page' : undefined} onClick={() => report()}><Icon name="plus" /><span>New field report</span></button>}{nav('assets', 'Asset register', 'asset')}{nav('drafts', `Device drafts${draftCount !== null ? ` · ${draftCount}` : ''}`)}{nav('notifications', 'Notifications')}{reviewer && <>{nav('methods', 'Work methods')}{nav('dashboard', 'Site dashboard', 'grid')}{nav('metrics', 'Operations metrics', 'grid')}</>}{user.role === 'admin' && <>{nav('admin', 'Site & team', 'people')}{nav('integrations', 'Inbound sources', 'asset')}</>}</>}{nav('security', 'Account security')}{nav('about', 'About ServiceTrail', 'book')}</nav>
       <div className="sidebar-principle"><span className="eyebrow">THE OPERATING PRINCIPLE</span><p>Observe carefully.<br />Decide independently.<br />Leave a clear record.</p></div>
       <div className="sidebar-bottom">
         <button className="theme-toggle" onClick={onToggleTheme}><Icon name={theme === 'light' ? 'moon' : 'sun'} size={18} /><span>{theme === 'light' ? 'Switch to dark' : 'Switch to light'}</span></button>

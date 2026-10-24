@@ -1,11 +1,11 @@
-name: opsbridge
+name: servicetrail
 services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-opsbridge}
-      POSTGRES_USER: ${POSTGRES_USER:-opsbridge}
+      POSTGRES_DB: ${POSTGRES_DB:-servicetrail}
+      POSTGRES_USER: ${POSTGRES_USER:-servicetrail}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your local .env}
     volumes:
       - postgres_data:/var/lib/postgresql/data

@@ -52,4 +52,4 @@ and API/evidence/mutations are not intercepted by the shell cache.
 
 The application was started with the new authenticated API. The old process-local
 prototype is retired; no silent migration of its former in-memory records is claimed.
-Use `using-opsbridge.md` for the shared workspace walkthrough and `release-gates.md` for remaining work.
+Use `using-servicetrail.md` for the shared workspace walkthrough and `release-gates.md` for remaining work.

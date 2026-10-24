@@ -1,6 +1,6 @@
-# OpsBridge backend
+# ServiceTrail backend
 
-FastAPI and SQLAlchemy backend for the authenticated OpsBridge manufacturing
+FastAPI and SQLAlchemy backend for the authenticated ServiceTrail field-service
 incident workflow. The API owns identity, role permissions, organization/site
 scope, incident versions, evidence, approvals, checklists, notifications and
 audit snapshots. The browser is not trusted to grant a role or bypass a workflow

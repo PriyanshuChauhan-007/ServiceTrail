@@ -11,7 +11,7 @@ have no authorization meaning.
 ## Configuration and persistence
 
 - `APP_ENV=development|test|production` (`ENVIRONMENT` is a fallback).
-- `DATABASE_URL` defaults to `sqlite:///./backend/data/opsbridge.db` locally.
+- `DATABASE_URL` defaults to `sqlite:///./backend/data/servicetrail.db` locally.
   `postgresql://`, `postgres://` and `postgresql+psycopg://` are supported using
   psycopg 3. PostgreSQL is mandatory in production.
 - Production requires an exact HTTPS `PUBLIC_ORIGIN`, for example

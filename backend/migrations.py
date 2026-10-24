@@ -34,3 +34,9 @@ def migration_002(connection):
     for model in (PasswordRecovery, AdminAudit, WorkMethod, Notification, Integration, Observation):
         model.__table__.create(connection)
     protect_completion_tables(connection)
+
+
+def migration_003(connection):
+    from .database import Customer, ServiceJob
+    Customer.__table__.create(connection)
+    ServiceJob.__table__.create(connection)

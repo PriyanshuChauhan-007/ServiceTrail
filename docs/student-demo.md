@@ -59,4 +59,4 @@ and a cold service may take time to respond. Startup re-creates examples only on
 an empty database. Persistent private use needs a separately configured database
 and normal account setup, not this public workspace.
 
-For the workflow and changing your own inputs, see [Using OpsBridge](using-opsbridge.md).
+For the workflow and changing your own inputs, see [Using ServiceTrail](using-servicetrail.md).

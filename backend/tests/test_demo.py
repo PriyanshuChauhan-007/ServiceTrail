@@ -382,7 +382,7 @@ def test_non_demo_environments_never_seed_or_register_perspectives(tmp_path, mon
     # this test checks environment boundaries without requiring a PostgreSQL host.
     database_url = f"sqlite:///{tmp_path / (environment + '.db')}"
     monkeypatch.setattr(main_module, "make_database", lambda _: make_database(database_url))
-    settings = Settings(database_url="postgresql://user:password@db/opsbridge" if environment == "production" else database_url,
+    settings = Settings(database_url="postgresql://user:password@db/servicetrail" if environment == "production" else database_url,
                         environment=environment, cookie_secure=True, public_origin="https://ops.example.test",
                         field_encryption_key=Fernet.generate_key().decode())
     app = create_app(settings)
@@ -438,7 +438,7 @@ def test_existing_demo_accounts_and_sessions_are_unusable_outside_demo(demo, mon
     next_settings = replace(settings, environment=environment, field_encryption_key=Fernet.generate_key().decode())
     if environment == "production":
         monkeypatch.setattr(main_module, "make_database", lambda _: make_database(settings.database_url))
-        next_settings = replace(next_settings, database_url="postgresql://user:password@db/opsbridge")
+        next_settings = replace(next_settings, database_url="postgresql://user:password@db/servicetrail")
     with TestClient(create_app(next_settings), base_url=settings.public_origin) as non_demo:
         non_demo.cookies.set(COOKIE, token)
         non_demo.cookies.set(CONTROLLER_COOKIE, controller)
@@ -466,4 +466,4 @@ def test_demo_credentials_never_ship_in_frontend_readmes_or_api_payloads(demo):
             for persona in DEMO_PERSONAS.values():
                 assert persona["password"] not in content, path
             if "frontend" in path.parts:
-                assert "demo.opsbridge.internal" not in content, path
+                assert "demo.servicetrail.internal" not in content, path

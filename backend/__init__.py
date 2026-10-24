@@ -1,1 +1,1 @@
-"""Offline-first OpsBridge backend package."""
+"""Offline-first ServiceTrail backend package."""

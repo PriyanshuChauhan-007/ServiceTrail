@@ -91,10 +91,10 @@ test('prepared shared workspace entry and role roundtrip use real server session
   await page.getByRole('button', { name: 'Open workspace', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Site & team', exact: true })).toBeVisible()
   const initialCookies = await context.cookies()
-  const controller = initialCookies.find(cookie => cookie.name === 'opsbridge_perspective')!
+  const controller = initialCookies.find(cookie => cookie.name === 'servicetrail_perspective')!
   expect(controller.httpOnly).toBeTruthy()
   expect(controller.path).toBe('/api/v1/auth')
-  const active = initialCookies.find(cookie => cookie.name === 'opsbridge_session')!
+  const active = initialCookies.find(cookie => cookie.name === 'servicetrail_session')!
   expect(active.httpOnly).toBeTruthy()
   await page.getByLabel('View as').selectOption('worker')
   await page.getByRole('button', { name: 'Apply', exact: true }).click()
@@ -168,10 +168,10 @@ test('prepared shared workspace entry and role roundtrip use real server session
   await expect(page.getByRole('button', { name: 'Site & team', exact: true })).toBeVisible()
   expect((await page.request.get('/api/v1/admin/audit')).status()).toBe(200)
   const currentCookies = await context.cookies()
-  expect(currentCookies.find(cookie => cookie.name === 'opsbridge_session')!.value).not.toBe(active.value)
-  expect(currentCookies.find(cookie => cookie.name === 'opsbridge_perspective')!.value).toBe(controller.value)
+  expect(currentCookies.find(cookie => cookie.name === 'servicetrail_session')!.value).not.toBe(active.value)
+  expect(currentCookies.find(cookie => cookie.name === 'servicetrail_perspective')!.value).toBe(controller.value)
   await page.getByRole('button', { name: 'Sign out', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Open workspace', exact: true })).toBeVisible()
-  expect((await context.cookies()).some(cookie => ['opsbridge_session', 'opsbridge_perspective'].includes(cookie.name))).toBeFalsy()
+  expect((await context.cookies()).some(cookie => ['servicetrail_session', 'servicetrail_perspective'].includes(cookie.name))).toBeFalsy()
   expect((await page.request.post('/api/v1/auth/perspectives/switch', { data: { perspective: 'admin' } })).status()).toBe(401)
 })

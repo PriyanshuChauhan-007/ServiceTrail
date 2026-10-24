@@ -124,7 +124,7 @@ def install_accounts(app, database, identity, issue_session, settings, cipher, f
         user.mfa_pending = cipher.encrypt(secret.encode()).decode()
         user.mfa_pending_expires = int(time.time()) + 600
         admin_audit(db, user, "mfa.enrollment_started")
-        return {"secret": secret, "otpauth_uri": f"otpauth://totp/{quote('OpsBridge:' + user.email)}?secret={secret}&issuer=OpsBridge&algorithm=SHA1&digits=6&period=30"}
+        return {"secret": secret, "otpauth_uri": f"otpauth://totp/{quote('ServiceTrail:' + user.email)}?secret={secret}&issuer=ServiceTrail&algorithm=SHA1&digits=6&period=30"}
 
     @app.post("/api/v1/auth/mfa/confirm")
     def confirm(data: OTP, request: Request, user: User = Depends(identity), db: Session = Depends(database)):

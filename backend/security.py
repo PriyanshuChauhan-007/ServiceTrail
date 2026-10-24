@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 
 from starlette.responses import JSONResponse
 
-COOKIE = "opsbridge_session"
+COOKIE = "servicetrail_session"
 ITERATIONS = 600_000
 
 

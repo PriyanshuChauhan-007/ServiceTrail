@@ -89,6 +89,22 @@ class AssetInput(Input):
     model: str | None = Field(None, max_length=160)
 
 
+class CustomerInput(Input):
+    name: str = Field(min_length=1, max_length=160)
+    phone: str = Field(default="", max_length=80)
+    email: str = Field(default="", max_length=254)
+    address: str = Field(default="", max_length=2000)
+    notes: str = Field(default="", max_length=10000)
+
+
+class ServiceJobInput(Input):
+    customer_id: str = Field(min_length=1, max_length=36)
+    asset_id: str | None = Field(None, max_length=36)
+    request: str = Field(min_length=1, max_length=20000)
+    assigned_to_id: str | None = Field(None, max_length=36)
+    scheduled_at: datetime | None = None
+
+
 class Report(Input):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=False)
     asset_id: str = Field(min_length=1, max_length=36)

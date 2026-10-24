@@ -16,20 +16,20 @@ from .services import analyze, assess
 # These values are intentionally kept in backend code. They are not part of the
 # frontend bundle or public documentation.
 DEMO_PERSONAS = {
-    "worker": {"name": "Jordan Ellis", "email": "worker@demo.opsbridge.internal", "password": "OpsBridge-Demo-Worker-2026!"},
-    "engineer": {"name": "Morgan Chen", "email": "engineer@demo.opsbridge.internal", "password": "OpsBridge-Demo-Engineer-2026!"},
-    "supervisor": {"name": "Taylor Brooks", "email": "supervisor@demo.opsbridge.internal", "password": "OpsBridge-Demo-Supervisor-2026!"},
-    "admin": {"name": "Priyanshu Chauhan", "email": "admin@demo.opsbridge.internal", "password": "OpsBridge-Demo-Admin-2026!"},
+    "worker": {"name": "Jordan Ellis", "email": "worker@demo.servicetrail.internal", "password": "ServiceTrail-Demo-Worker-2026!"},
+    "engineer": {"name": "Morgan Chen", "email": "engineer@demo.servicetrail.internal", "password": "ServiceTrail-Demo-Engineer-2026!"},
+    "supervisor": {"name": "Taylor Brooks", "email": "supervisor@demo.servicetrail.internal", "password": "ServiceTrail-Demo-Supervisor-2026!"},
+    "admin": {"name": "Priyanshu Chauhan", "email": "admin@demo.servicetrail.internal", "password": "ServiceTrail-Demo-Admin-2026!"},
 }
 DEMO_ORGANIZATION = "Northstar Works"
 DEMO_SITE = "North Plant"
-DEMO_ORGANIZATION_ID = str(uuid5(NAMESPACE_URL, "opsbridge:synthetic:organization:v1"))
-DEMO_SITE_ID = str(uuid5(NAMESPACE_URL, "opsbridge:synthetic:site:v1"))
-DEMO_SEED_EVENT_ID = str(uuid5(NAMESPACE_URL, "opsbridge:synthetic:seed:v1"))
-DEMO_USER_IDS = {role: str(uuid5(NAMESPACE_URL, f"opsbridge:synthetic:user:{role}:v1")) for role in DEMO_PERSONAS}
-CONTROLLER_COOKIE = "opsbridge_perspective"
+DEMO_ORGANIZATION_ID = str(uuid5(NAMESPACE_URL, "servicetrail:synthetic:organization:v1"))
+DEMO_SITE_ID = str(uuid5(NAMESPACE_URL, "servicetrail:synthetic:site:v1"))
+DEMO_SEED_EVENT_ID = str(uuid5(NAMESPACE_URL, "servicetrail:synthetic:seed:v1"))
+DEMO_USER_IDS = {role: str(uuid5(NAMESPACE_URL, f"servicetrail:synthetic:user:{role}:v1")) for role in DEMO_PERSONAS}
+CONTROLLER_COOKIE = "servicetrail_perspective"
 CONTROLLER_PATH = "/api/v1/auth"
-CONTROLLER_SCOPE = str(uuid5(NAMESPACE_URL, "opsbridge:synthetic:controller:v1"))
+CONTROLLER_SCOPE = str(uuid5(NAMESPACE_URL, "servicetrail:synthetic:controller:v1"))
 CONTROLLER_SECONDS = 30 * 60
 
 
@@ -203,5 +203,5 @@ def seed_demo(db: Session, settings, audit) -> None:
             notify(db, incident, "submit_verification")
 
     lock.completed = True
-    db.add(AdminAudit(id=DEMO_SEED_EVENT_ID, organization_id=organization.id, actor_name="OpsBridge system",
+    db.add(AdminAudit(id=DEMO_SEED_EVENT_ID, organization_id=organization.id, actor_name="ServiceTrail system",
                       action="demo.seeded", note="Synthetic organization, site, accounts, assets and incidents provisioned"))

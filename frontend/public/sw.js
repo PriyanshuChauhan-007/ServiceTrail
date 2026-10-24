@@ -1,9 +1,9 @@
 /* Build replaces both markers with a content-addressed version and an exact shell allowlist.
  * This worker never reads IndexedDB, caches API/evidence, or queues mutations.
  */
-const VERSION = '__OPSBRIDGE_SHELL_VERSION__'
-const SHELL = __OPSBRIDGE_SHELL_ASSETS__
-const PREFIX = 'opsbridge-shell-'
+const VERSION = '__SERVICETRAIL_SHELL_VERSION__'
+const SHELL = __SERVICETRAIL_SHELL_ASSETS__
+const PREFIX = 'servicetrail-shell-'
 const CACHE = PREFIX + VERSION
 const ALLOWED = new Set(SHELL)
 

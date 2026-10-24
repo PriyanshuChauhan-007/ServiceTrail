@@ -1,26 +1,25 @@
-# OpsBridge
+# ServiceTrail
 
-Equipment incident tracking with a clear handover between workers and engineers.
+Field-service handoff and proof-of-work for small repair and maintenance companies.
 
-[Open OpsBridge](https://opsbridge-demo.onrender.com) · [How to use it](docs/using-opsbridge.md) · [Architecture](docs/architecture-diagrams.md)
+[Open ServiceTrail](https://servicetrail-demo.onrender.com) · [How to use it](docs/using-servicetrail.md) · [Architecture](docs/architecture-diagrams.md)
 
 ## Why I built it
 
-I was interested in what happens between someone noticing an equipment problem
-and a team deciding that the work is complete. A message or spreadsheet row can
-record a fault, but it does not necessarily preserve the questions, changes,
-approval, or the person who checked the result.
+I was interested in what happens after a technician visits a customer. A phone
+call or WhatsApp message can arrange a visit, but it does not reliably preserve
+what was observed, what was changed, which evidence exists, who confirmed the
+work, or what follow-up remains.
 
-OpsBridge brings that handover into one record:
+ServiceTrail brings that field-service handoff into one record:
 
 ```text
-Observation → Questions → Source revision → Work release → Execution notes → Verification
+Job assignment → Technician visit → Evidence → Work performed → Confirmation → Follow-up
 ```
 
-A worker describes a problem against a registered asset. An engineer asks for
-missing information and reviews the current source. Work is released with a
-checklist, then handed back for independent verification. The original statement
-and later actions remain in the history.
+A supervisor assigns a service job. A technician records the visit, observations,
+work performed, parts, and before/after evidence. A supervisor or customer contact
+confirms the visit, while follow-up work and the service history remain visible.
 
 ## Use the shared workspace
 
@@ -47,21 +46,22 @@ create additional accounts through **Site & team**.
 
 ## What it does
 
-- Registers equipment and links reports to an asset and site.
-- Preserves observations, attachments, questions, and source revisions.
-- Flags missing or contradictory information using explicit rules.
-- Requires an independent approval before execution, then verification before closure.
-- Records checklist notes and who performed each action.
+- Creates customers, service locations, equipment, and service jobs.
+- Assigns jobs to technicians and records the actual field visit.
+- Preserves observations, work performed, parts, and before/after evidence.
+- Supports supervisor review, customer/site confirmation, and follow-up ownership.
+- Maintains customer and equipment service history with an audit trail.
 - Rejects stale writes rather than overwriting someone else's changes.
-- Exports incident history as JSON or CSV.
-- Includes in-app notifications, work methods, due dates, and aggregate views.
+- Exports service history as JSON or CSV.
+- Includes notifications, due dates, searchable queues, and operational views.
 - Supports password accounts, MFA/recovery, session management, and site-scoped access.
 - Offers an encrypted device vault for explicit drafts and manual synchronization.
 
 ## Engineering choices
 
-**Rules rather than an LLM.** The checks are inspectable and repeatable. They
-identify information gaps, not diagnoses or physical safety clearance.
+**Records rather than diagnosis.** The checks are inspectable and repeatable. They
+help complete a service record; they do not decide whether a repair is technically
+correct or diagnose equipment.
 
 **Version checks plus database transactions.** Each mutation carries a record
 revision. The backend combines version validation with serialized SQLite writes
@@ -133,11 +133,11 @@ the frontend and API together; Compose offers a separate web/API/PostgreSQL setu
 
 ## Limits
 
-OpsBridge coordinates records and decisions. It does not control machinery,
+ServiceTrail coordinates field-service records and decisions. It does not control equipment,
 validate physical isolation, or replace site procedures. Attachments are checked
 for supported formats and size, not certified malware-free. Offline support is
 for drafts, not offline authorization. No real sensors, maintenance connectors,
 or safety/compliance certification are claimed.
 
 This project is developed by Priyanshu Chauhan. The prepared records are
-fictional examples, not evidence of use in a real factory.
+fictional examples, not evidence of use by a real service company.

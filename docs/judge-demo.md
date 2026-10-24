@@ -1,9 +1,9 @@
-# OpsBridge acceptance walkthrough
+# ServiceTrail acceptance walkthrough
 
-This guide walks through evaluating OpsBridge as an accountable manufacturing incident coordination system.
+This guide walks through evaluating ServiceTrail as a field-service handoff and proof-of-work platform.
 It can be evaluated either locally or via the hosted live demo:
-- **Live Demo Instance**: [https://opsbridge-demo.onrender.com](https://opsbridge-demo.onrender.com)
-- **GitHub Repository**: [https://github.com/PriyanshuChauhan-007/opsbridge](https://github.com/PriyanshuChauhan-007/opsbridge)
+- **Live Demo Instance**: [https://servicetrail-demo.onrender.com](https://servicetrail-demo.onrender.com)
+- **GitHub Repository**: [https://github.com/PriyanshuChauhan-007/servicetrail](https://github.com/PriyanshuChauhan-007/servicetrail)
 
 ## Demo data
 
@@ -66,7 +66,7 @@ new synthetic credentials once and never stores them in the repository.
 
 ## Defensible project explanation
 
-“OpsBridge is an accountable work coordination system, not a chatbot diagnosis.
+“ServiceTrail is a field-service proof-of-work platform, not an automatic repair diagnosis tool.
 It binds registered equipment, source observations, evidence, clarification,
 independent approval, execution notes and independent verification into one
 versioned, persistent record. Rules expose gaps; qualified people own decisions.”

@@ -6,7 +6,7 @@ from urllib.parse import urlsplit
 
 @dataclass(frozen=True)
 class Settings:
-    database_url: str = "sqlite:///./backend/data/opsbridge.db"
+    database_url: str = "sqlite:///./backend/data/servicetrail.db"
     environment: str = "development"
     public_origin: str | None = None
     cookie_secure: bool = False

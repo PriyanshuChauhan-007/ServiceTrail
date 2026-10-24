@@ -19,7 +19,7 @@ export function Icon({ name, size = 20 }: { name: 'grid' | 'book' | 'asset' | 'p
   }
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>
 }
-export function Brand({ compact = false }: { compact?: boolean }) { return <div className="brand"><span className="brand-mark" aria-hidden="true"><i /><i /><i /></span><span>opsbridge<span className="brand-dot">.</span>{!compact && <small>MANUFACTURING OPERATIONS</small>}</span></div> }
+export function Brand({ compact = false }: { compact?: boolean }) { return <div className="brand"><span className="brand-mark" aria-hidden="true"><i /><i /><i /></span><span>servicetrail<span className="brand-dot">.</span>{!compact && <small>FIELD SERVICE OPERATIONS</small>}</span></div> }
 export function Badge({ status }: { status: IncidentStatus }) { return <span className={`badge status-${status}`}><span aria-hidden="true" />{statusLabels[status]}</span> }
 export function ErrorNotice({ message, children }: { message: string; children?: ReactNode }) { return <div className="notice error" role="alert"><strong>Action not completed</strong><p>{message}</p>{children}</div> }
 export function Empty({ title, children }: { title: string; children?: ReactNode }) { return <div className="empty"><span className="empty-mark" aria-hidden="true">↗</span><h3>{title}</h3><div>{children}</div></div> }
@@ -28,7 +28,7 @@ export function Loading({ text = 'Loading workspace…' }: { text?: string }) { 
 
 // Preserve unsaved field observations/step notes on SPA navigation, not only reload.
 export function confirmNavigation(): boolean {
-  return window.dispatchEvent(new CustomEvent('opsbridge:before-navigation', { cancelable: true, detail: { accepted: false } }))
+  return window.dispatchEvent(new CustomEvent('servicetrail:before-navigation', { cancelable: true, detail: { accepted: false } }))
 }
 
 export function useUnsavedChanges(dirty: boolean): void {
@@ -42,7 +42,7 @@ export function useUnsavedChanges(dirty: boolean): void {
       else prompt.preventDefault()
     }
     window.addEventListener('beforeunload', unload)
-    window.addEventListener('opsbridge:before-navigation', navigate)
-    return () => { window.removeEventListener('beforeunload', unload); window.removeEventListener('opsbridge:before-navigation', navigate) }
+    window.addEventListener('servicetrail:before-navigation', navigate)
+    return () => { window.removeEventListener('beforeunload', unload); window.removeEventListener('servicetrail:before-navigation', navigate) }
   }, [dirty])
 }

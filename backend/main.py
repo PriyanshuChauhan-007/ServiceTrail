@@ -16,7 +16,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path, PurePosixPath
 from urllib.parse import quote
 
-logger = logging.getLogger("opsbridge.notify")
+logger = logging.getLogger("servicetrail.notify")
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.exceptions import RequestValidationError
@@ -31,9 +31,9 @@ from sqlalchemy.orm import Session
 from starlette.responses import JSONResponse
 
 from .config import Settings
-from .database import (Asset, AuditEvent, AuthSession, Evidence, Incident, LoginThrottle,
-                       Organization, SetupLock, Site, User, WorkMethod, initialize, make_database, now, uid)
-from .models import (Action, AssetInput, ChecklistUpdate, CreateReport, EditReport, Login, NewUser, Setup,
+from .database import (Asset, AuditEvent, AuthSession, Customer, Evidence, Incident, LoginThrottle,
+                       Organization, ServiceJob, SetupLock, Site, User, WorkMethod, initialize, make_database, now, uid)
+from .models import (Action, AssetInput, ChecklistUpdate, CreateReport, CustomerInput, EditReport, Login, NewUser, ServiceJobInput, Setup,
                      WorkspaceRegistration)
 from .security import COOKIE, SecurityMiddleware, field_cipher, hash_password, token_hash, verify_password
 from .accounts import admin_audit, install_accounts, verify_mfa
@@ -67,6 +67,21 @@ def public_user(db, user):
 
 def public_asset(asset):
     return {key: getattr(asset, key) for key in ("id", "code", "name", "area", "criticality", "manufacturer", "model", "status")}
+
+
+def public_customer(customer):
+    return {key: getattr(customer, key) for key in ("id", "name", "phone", "email", "address", "notes", "created_at")}
+
+
+def public_service_job(db, job):
+    customer = db.get(Customer, job.customer_id)
+    assignee = db.get(User, job.assigned_to_id) if job.assigned_to_id else None
+    asset = db.get(Asset, job.asset_id) if job.asset_id else None
+    return {"id": job.id, "number": job.number, "customer": public_customer(customer),
+            "asset": public_asset(asset) if asset else None, "request": job.request,
+            "assigned_to": {"id": assignee.id, "name": assignee.name} if assignee else None,
+            "status": job.status, "scheduled_at": job.scheduled_at, "created_at": job.created_at,
+            "updated_at": job.updated_at}
 
 
 def public_evidence(evidence):
@@ -136,7 +151,7 @@ def create_app(settings: Settings | None = None):
         finally:
             engine.dispose()
 
-    app = FastAPI(title="OpsBridge API", version="1.0.0", lifespan=lifespan,
+    app = FastAPI(title="ServiceTrail API", version="1.0.0", lifespan=lifespan,
                   docs_url=None,
                   redoc_url=None, openapi_url="/api/v1/openapi.json" if settings.environment != "production" else None)
     app.state.engine, app.state.sessions, app.state.settings = engine, sessions, settings
@@ -236,7 +251,7 @@ def create_app(settings: Settings | None = None):
         try:
             db.execute(text("SELECT 1"))
             latency_ms = round((time.monotonic() - t0) * 1000, 1)
-            return {"status": "ok", "service": "opsbridge-backend", "version": "1.0.0",
+            return {"status": "ok", "service": "servicetrail-backend", "version": "1.0.0",
                     "db": "ok", "db_latency_ms": latency_ms, "environment": settings.environment}
         except SQLAlchemyError:
             fail(503, "Database unavailable")
@@ -367,6 +382,57 @@ def create_app(settings: Settings | None = None):
         db.flush()
         admin_audit(db, user, "asset.created", f"Asset {item.id}: {item.code}")
         return public_asset(item)
+
+    @app.get("/api/v1/customers")
+    def customers(user: User = Depends(identity), db: Session = Depends(database)):
+        return [public_customer(item) for item in db.scalars(select(Customer).where(Customer.organization_id == user.organization_id, Customer.site_id == user.site_id).order_by(Customer.name))]
+
+    @app.post("/api/v1/customers", status_code=201)
+    def create_customer(data: CustomerInput, user: User = Depends(identity), db: Session = Depends(database)):
+        require_role(user, {"admin", "supervisor"})
+        item = Customer(**data.model_dump(), organization_id=user.organization_id, site_id=user.site_id)
+        db.add(item); db.flush()
+        admin_audit(db, user, "customer.created", f"Customer {item.id}: {item.name}")
+        return public_customer(item)
+
+    @app.get("/api/v1/service-jobs")
+    def service_jobs(user: User = Depends(identity), db: Session = Depends(database)):
+        query = select(ServiceJob).where(ServiceJob.organization_id == user.organization_id, ServiceJob.site_id == user.site_id)
+        if user.role == "worker":
+            query = query.where(ServiceJob.assigned_to_id == user.id)
+        return [public_service_job(db, item) for item in db.scalars(query.order_by(ServiceJob.created_at.desc()))]
+
+    @app.post("/api/v1/service-jobs", status_code=201)
+    def create_service_job(data: ServiceJobInput, user: User = Depends(identity), db: Session = Depends(database)):
+        require_role(user, {"admin", "supervisor"})
+        customer = db.scalar(select(Customer).where(Customer.id == data.customer_id, Customer.organization_id == user.organization_id, Customer.site_id == user.site_id))
+        if not customer:
+            fail(404, "Customer not found in this site")
+        if data.asset_id:
+            scoped_asset(db, user, data.asset_id)
+        assignee = None
+        if data.assigned_to_id:
+            assignee = db.get(User, data.assigned_to_id)
+            if not assignee or not assignee.active or assignee.organization_id != user.organization_id or assignee.site_id != user.site_id or assignee.role != "worker":
+                fail(404, "Technician not found in this site")
+        item = ServiceJob(number="JOB-" + uid().replace("-", "").upper(), organization_id=user.organization_id,
+                          site_id=user.site_id, created_by_id=user.id, assigned_to_id=assignee.id if assignee else None,
+                          customer_id=customer.id, asset_id=data.asset_id, request=data.request,
+                          scheduled_at=data.scheduled_at.isoformat() if data.scheduled_at else None,
+                          status="assigned" if assignee else "new")
+        db.add(item); db.flush()
+        admin_audit(db, user, "service_job.created", f"Service job {item.id}: {item.number}")
+        return public_service_job(db, item)
+
+    @app.get("/api/v1/service-jobs/{job_id}")
+    def get_service_job(job_id: str, user: User = Depends(identity), db: Session = Depends(database)):
+        query = select(ServiceJob).where(ServiceJob.id == job_id, ServiceJob.organization_id == user.organization_id, ServiceJob.site_id == user.site_id)
+        if user.role == "worker":
+            query = query.where(ServiceJob.assigned_to_id == user.id)
+        item = db.scalar(query)
+        if not item:
+            fail(404, "Service job not found")
+        return public_service_job(db, item)
 
     install_accounts(app, database, identity, issue_session, settings, cipher, fail, require_role, public_user)
     install_operations(app, database, identity, fail, require_role, incident_data, scoped_asset)

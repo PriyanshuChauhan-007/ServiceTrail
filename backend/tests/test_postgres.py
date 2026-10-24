@@ -123,11 +123,11 @@ def test_postgresql_completion_security_scope_operations_and_inbound():
                 assert responses[0].json()["id"] == responses[1].json()["id"]
                 ok(admin.patch(f'{PREFIX}/users/{engineer_user["id"]}', json={"active": False}))
                 assert one.post(PREFIX + "/auth/login", json={"email": engineer_user["email"], "password": PASSWORD + " reset", "recovery_code": codes[1]}).status_code == 401
-                old_token = admin.cookies.get("opsbridge_session")
+                old_token = admin.cookies.get("servicetrail_session")
                 site = ok(admin.post(PREFIX + "/sites", json={"name": "PG Second Site"}), 201)
                 ok(admin.post(PREFIX + "/auth/switch-site", json={"site_id": site["id"]}))
                 assert ok(admin.get(PREFIX + "/incidents/page"))["total"] == 0
-                one.cookies.set("opsbridge_session", old_token)
+                one.cookies.set("servicetrail_session", old_token)
                 assert one.get(PREFIX + "/auth/me").status_code == 401
                 assert ok(admin.get(PREFIX + "/admin/audit"))["total"] > 0
     finally:

@@ -1,33 +1,33 @@
 import { PageHeading } from './components'
 
 const stages = [
-  ['Report the problem', 'Choose an asset in New field report. Describe what happened, the impact, and what is still unknown. Attach an image or PDF to the saved report if useful.'],
-  ['Ask for missing information', 'An engineer opens Analysis & decision, reads the source, checks the findings, and returns questions to the author when needed.'],
-  ['Review the current version', 'The author uses Revise report to answer. Changes create a new source version, so the engineer must analyze and review that version again.'],
-  ['Release the work', 'The engineer selects a work method, adds a decision note, confirms review, and approves. A report author cannot approve their own report.'],
-  ['Record the work', 'The author or assigned worker opens Released work, begins, and saves notes against the checklist. Finished work is submitted for verification, not automatically closed.'],
-  ['Verify and close', 'A reviewer who did not report or execute the work checks the notes and records a verification decision. Activity trail and the exports retain the history.'],
+  ['Create the service job', 'Record the customer request, service location, equipment, and the original wording before assigning the visit.'],
+  ['Assign the technician', 'A supervisor assigns the job, schedule, and current responsibility. The technician sees the request without needing a technical diagnosis.'],
+  ['Record the visit', 'The technician records arrival, observation, work performed, parts or materials, and the outcome in the field.'],
+  ['Add proof of work', 'Attach before/after photos, equipment labels, readings, or other evidence that helps the office and customer understand the visit.'],
+  ['Review and confirm', 'A supervisor checks that the service record is complete. A customer or site contact can acknowledge the visit without claiming automatic technical validation.'],
+  ['Track follow-up', 'If more work or parts are required, assign a follow-up owner and keep the complete customer and equipment history visible.'],
 ]
 
 export default function About() {
   return <div className="about-page">
-    <PageHeading eyebrow="HOW IT WORKS" title="One equipment problem. A clear handover."
-      description="Keep the original observation, questions, work decisions, and completion notes together so the next person knows what happened and what to do." />
+      <PageHeading eyebrow="HOW IT WORKS" title="One service visit. A complete record."
+      description="Keep the customer request, technician observation, evidence, work performed, confirmation, and follow-up together so the office knows what happened." />
 
     <div className="about-grid">
       <section className="panel">
-        <p className="eyebrow">THE PROBLEM</p><h2>A message is not a completed handover.</h2>
-        <p>When a machine stops, a short message rarely answers every question. Which asset? What did the operator see? Was anyone hurt? Who agreed to the work? Has someone checked the result?</p>
-        <p>OpsBridge keeps those answers in a single incident record. Missing information can be requested before work is released, and changes stay visible rather than replacing the original account.</p>
+        <p className="eyebrow">THE PROBLEM</p><h2>A technician visit should not disappear into chat.</h2>
+        <p>After a field visit, the office needs to know what was observed, what changed, which parts were used, what evidence exists, whether the customer acknowledged the work, and what follow-up remains.</p>
+        <p>ServiceTrail keeps those answers in one service record. It helps a company coordinate and prove work without pretending to diagnose equipment automatically.</p>
       </section>
       <section className="panel">
-        <p className="eyebrow">START WITH A RECORD</p><h2>Read the next responsibility.</h2>
-        <p>Open a record from My notebook or Work register. Its status and next responsibility explain who needs to act.</p>
+        <p className="eyebrow">START WITH A SERVICE JOB</p><h2>Read the next responsibility.</h2>
+        <p>Open a job from My jobs or Service jobs. Its status and next responsibility explain who needs to act.</p>
         <ul className="about-list">
-          <li><strong>Source &amp; evidence:</strong> what was reported and attached.</li>
-          <li><strong>Analysis &amp; decision:</strong> questions, findings, assignment, and approval.</li>
-          <li><strong>Released work:</strong> checklist notes and verification.</li>
-          <li><strong>Activity trail:</strong> who changed what and against which source version.</li>
+          <li><strong>Customer request:</strong> what was asked for and where.</li>
+          <li><strong>Visit record:</strong> what the technician observed and performed.</li>
+          <li><strong>Evidence and confirmation:</strong> proof attached and acknowledgement recorded.</li>
+          <li><strong>Follow-up trail:</strong> who owns the next action and what happened later.</li>
         </ul>
       </section>
     </div>

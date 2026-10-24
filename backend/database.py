@@ -172,6 +172,36 @@ class Asset(Base):
     status: Mapped[str] = mapped_column(String(20), default="registered")
 
 
+class Customer(Base):
+    __tablename__ = "customers"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    organization_id: Mapped[str] = mapped_column(ForeignKey("organizations.id"), index=True)
+    site_id: Mapped[str] = mapped_column(ForeignKey("sites.id"), index=True)
+    name: Mapped[str] = mapped_column(String(160))
+    phone: Mapped[str] = mapped_column(String(80), default="")
+    email: Mapped[str] = mapped_column(String(254), default="")
+    address: Mapped[str] = mapped_column(Text, default="")
+    notes: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[str] = mapped_column(String(40), default=now)
+
+
+class ServiceJob(Base):
+    __tablename__ = "service_jobs"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    number: Mapped[str] = mapped_column(String(40), unique=True)
+    organization_id: Mapped[str] = mapped_column(ForeignKey("organizations.id"), index=True)
+    site_id: Mapped[str] = mapped_column(ForeignKey("sites.id"), index=True)
+    customer_id: Mapped[str] = mapped_column(ForeignKey("customers.id"), index=True)
+    asset_id: Mapped[str | None] = mapped_column(ForeignKey("assets.id"), nullable=True)
+    request: Mapped[str] = mapped_column(Text)
+    assigned_to_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    created_by_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    status: Mapped[str] = mapped_column(String(40), default="new")
+    scheduled_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    created_at: Mapped[str] = mapped_column(String(40), default=now)
+    updated_at: Mapped[str] = mapped_column(String(40), default=now)
+
+
 class Incident(Base):
     __tablename__ = "incidents"
     __table_args__ = (UniqueConstraint("reporter_id", "client_id"),)
@@ -287,16 +317,22 @@ def initialize(engine):
             raise RuntimeError("Unversioned database; back up and migrate explicitly before starting")
         if "schema_versions" in tables:
             versions = list(connection.execute(select(SchemaVersion.version).order_by(SchemaVersion.version)).scalars())
-            if versions not in ([1], [1, 2]):
+            if versions not in ([1], [1, 2], [1, 2, 3]):
                 raise RuntimeError("Unsupported database schema version; explicit migration required")
             if versions == [1]:
                 from .migrations import migration_002
                 migration_002(connection)
                 connection.execute(SchemaVersion.__table__.insert().values(version=2))
+                versions = [1, 2]
+            if versions == [1, 2]:
+                from .migrations import migration_003
+                migration_003(connection)
+                connection.execute(SchemaVersion.__table__.insert().values(version=3))
             return
         Base.metadata.create_all(connection)
         connection.execute(SchemaVersion.__table__.insert().values(version=1))
         connection.execute(SchemaVersion.__table__.insert().values(version=2))
+        connection.execute(SchemaVersion.__table__.insert().values(version=3))
         connection.execute(SetupLock.__table__.insert().values(id=1, completed=False))
         if engine.dialect.name == "sqlite":
             for operation in ("UPDATE", "DELETE"):

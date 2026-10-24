@@ -68,7 +68,7 @@ test('only documented fields persist and saving again retains the idempotency ke
 })
 
 async function rawRecords(storeName) {
-  const db = await new Promise((resolve, reject) => { const req = indexedDB.open('opsbridge-device-v1', 2); req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error) })
+  const db = await new Promise((resolve, reject) => { const req = indexedDB.open('servicetrail-device-v1', 2); req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error) })
   try {
     return await new Promise((resolve, reject) => {
       const tx = db.transaction(storeName, 'readonly')
@@ -107,7 +107,7 @@ test('authenticated encryption rejects ciphertext copied into another account', 
   reset(); await enroll('worker-a'); await enroll('worker-b')
   await offline.saveDraft(draft('worker-a'))
   const record = (await rawRecords('secure_records'))[0]
-  const db = await new Promise(resolve => { const req = indexedDB.open('opsbridge-device-v1', 2); req.onsuccess = () => resolve(req.result) })
+  const db = await new Promise(resolve => { const req = indexedDB.open('servicetrail-device-v1', 2); req.onsuccess = () => resolve(req.result) })
   await new Promise((resolve, reject) => { const tx = db.transaction('secure_records', 'readwrite'); tx.objectStore('secure_records').put({ ...record, user_id: 'worker-b' }); tx.oncomplete = resolve; tx.onabort = () => reject(tx.error) })
   db.close()
   await assert.rejects(offline.listDrafts('worker-b'))
@@ -117,7 +117,7 @@ test('authenticated encryption rejects ciphertext copied into another account', 
 test('baseline plaintext drafts migrate atomically on explicit vault enrollment without losing another user', async () => {
   reset()
   const db = await new Promise((resolve, reject) => {
-    const req = indexedDB.open('opsbridge-device-v1', 1)
+    const req = indexedDB.open('servicetrail-device-v1', 1)
     req.onupgradeneeded = () => { const drafts = req.result.createObjectStore('drafts', { keyPath: ['user_id', 'client_id'] }); drafts.createIndex('by_user', 'user_id'); req.result.createObjectStore('assets', { keyPath: 'user_id' }) }
     req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error)
   })

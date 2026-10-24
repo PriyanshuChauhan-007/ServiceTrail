@@ -1,12 +1,12 @@
-# OpsBridge: System Architecture & Design Diagrams
+# ServiceTrail: System Architecture & Design Diagrams
 
-This document contains architectural diagrams and technical design specifications for **OpsBridge**. These diagrams illustrate the system components, incident state machine, database schema, security boundaries, and runtime deployment topologies.
+This document contains architectural diagrams and technical design specifications for **ServiceTrail**. These diagrams illustrate the system components, service-job lifecycle, database schema, security boundaries, and runtime deployment topologies.
 
 ---
 
 ## 1. High-Level System Architecture
 
-OpsBridge connects shopfloor workers and reliability engineers through a layered, role-enforced architecture designed for strict human accountability and audit provenance.
+ServiceTrail connects service supervisors and field technicians through a layered, role-enforced architecture designed for clear proof of work and audit provenance.
 
 ```mermaid
 graph TB
@@ -114,7 +114,7 @@ This sequence illustrates the exact handoff boundaries between human roles, prov
 sequenceDiagram
     autonumber
     actor W as Field Worker / Technician
-    participant API as OpsBridge API
+    participant API as ServiceTrail API
     participant Rule as Rule Engine
     actor E as Independent Engineer
     participant DB as Durable Audit Log
@@ -171,7 +171,7 @@ sequenceDiagram
     API->>DB: Check SetupLock (Atomic transaction)
     API->>Hash: Hash Password (600,000 iterations, unique salt)
     API->>DB: Store User + Set SetupLock.completed = True
-    API-->>Client: Set-Cookie: opsbridge_session (HTTP-Only, SameSite=Strict)
+    API-->>Client: Set-Cookie: servicetrail_session (HTTP-Only, SameSite=Strict)
 
     Note over Client,DB: Subsequent Login & MFA Flow
     Client->>API: POST /api/v1/auth/login (email, password, optional OTP)
@@ -182,7 +182,7 @@ sequenceDiagram
     end
     API->>API: Generate Cryptographically Secure Random Session Token
     API->>DB: Store SHA-256 Digest of Token (12-Hour Expiration)
-    API-->>Client: Set-Cookie: opsbridge_session (Rotated Session ID)
+    API-->>Client: Set-Cookie: servicetrail_session (Rotated Session ID)
 
     Note over Client,DB: First Login Password Rotation
     alt user.must_change_password == True
@@ -197,7 +197,7 @@ sequenceDiagram
 
 ## 5. Entity-Relationship (ER) Schema Diagram
 
-OpsBridge models physical shopfloor assets, organizations, sites, role-scoped accounts, versioned incidents, checklists, immutable work methods, and append-only audit events.
+ServiceTrail models customers, service locations, equipment, service jobs, technician visits, evidence, follow-ups, role-scoped accounts, and append-only audit events.
 
 ```mermaid
 erDiagram
@@ -314,7 +314,7 @@ erDiagram
 
 ## 6. Runtime & Deployment Topology
 
-OpsBridge is designed for flexible deployment: from lightweight single-container cloud demonstrations to production high-availability multi-tier deployments with PostgreSQL.
+ServiceTrail is designed for flexible deployment: from lightweight single-container cloud demonstrations to production multi-tier deployments with PostgreSQL.
 
 ```mermaid
 graph TB
@@ -324,7 +324,7 @@ graph TB
         Desktop["Workstation (Engineering / Ops Center)"]
     end
 
-    subgraph ContainerRuntime["OpsBridge Docker Container"]
+    subgraph ContainerRuntime["ServiceTrail Docker Container"]
         ReverseProxy["Reverse Proxy / Nginx / Render Edge"]
 
         subgraph InternalHost["Uvicorn ASGI Server"]
@@ -335,7 +335,7 @@ graph TB
 
     subgraph StorageOptions["Storage Deployment Configurations"]
         subgraph DemoMode["Demo Mode (APP_ENV=demo)"]
-            SQLiteFile[("opsbridge.db (Ephemeral SQLite + WAL)")]
+            SQLiteFile[("servicetrail.db (Ephemeral SQLite + WAL)")]
         end
 
         subgraph ProdMode["Production Mode (APP_ENV=production)"]
@@ -360,7 +360,7 @@ graph TB
 
 ## 7. Audit Immutability & Database Triggers
 
-Audit events in OpsBridge are protected at multiple defensive tiers:
+Audit events in ServiceTrail are protected at multiple defensive tiers:
 1. **Application / ORM Tier**: SQLAlchemy lifecycle listeners intercept and reject any `UPDATE` or `DELETE` attempt on `AuditEvent`, `AdminAudit`, or `WorkMethod` entities.
 2. **Database Engine Tier**: Native database triggers (`audit_no_update` and `audit_no_delete` in SQLite; `reject_audit_mutation()` in PostgreSQL) abort mutations at the SQL engine level.
 3. **Data Provenance Tier**: Every transition saves a snapshot of the exact report state, actor identity, decision note, and timestamp.

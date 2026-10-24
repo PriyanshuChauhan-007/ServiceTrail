@@ -1,4 +1,4 @@
-"""Create synthetic OpsBridge data through the public API.
+"""Create synthetic ServiceTrail data through the public API.
 
 This script is intentionally explicit: credentials are supplied at runtime and
 no demo passwords or private data are committed to the repository.
@@ -31,8 +31,8 @@ def request(base: str, method: str, path: str, payload: dict | None = None, cook
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Populate a synthetic OpsBridge workspace")
-    parser.add_argument("--base-url", required=True, help="For example https://opsbridge-demo.onrender.com")
+    parser = argparse.ArgumentParser(description="Populate a synthetic ServiceTrail workspace")
+    parser.add_argument("--base-url", required=True, help="For example https://servicetrail-demo.onrender.com")
     parser.add_argument("--admin-email", required=True)
     parser.add_argument("--admin-password", required=True)
     parser.add_argument("--admin-name", default="Demo Administrator")

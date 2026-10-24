@@ -4,8 +4,8 @@ import { readFile } from 'node:fs/promises'
 import vm from 'node:vm'
 
 const source = (await readFile(new URL('../public/sw.js', import.meta.url), 'utf8'))
-  .replace('__OPSBRIDGE_SHELL_VERSION__', 'test-build')
-  .replace('__OPSBRIDGE_SHELL_ASSETS__', JSON.stringify(['/index.html', '/assets/application.js', '/assets/application.css']))
+  .replace('__SERVICETRAIL_SHELL_VERSION__', 'test-build')
+  .replace('__SERVICETRAIL_SHELL_ASSETS__', JSON.stringify(['/index.html', '/assets/application.js', '/assets/application.css']))
 
 function worker() {
   const listeners = new Map()
@@ -46,7 +46,7 @@ function worker() {
 test('the complete installed public shell reloads when disconnected', async () => {
   const sw = worker()
   await sw.install()
-  assert.equal(sw.stores.get('opsbridge-shell-test-build').size, 3)
+  assert.equal(sw.stores.get('servicetrail-shell-test-build').size, 3)
   sw.disconnect()
   assert.equal(await (await sw.request('/', 'GET', 'navigate')).text(), 'public-shell:/index.html')
   assert.equal(await (await sw.request('/assets/application.js')).text(), 'public-shell:/assets/application.js')
@@ -65,5 +65,5 @@ test('API, evidence, cross-origin requests and writes are never intercepted or c
     ['/unregistered-private-route', 'GET', 'navigate'],
   ]) assert.equal(await sw.request(path, method, mode), undefined)
   assert.equal(sw.requests, count)
-  assert.deepEqual([...sw.stores.get('opsbridge-shell-test-build').keys()].sort(), ['/assets/application.css', '/assets/application.js', '/index.html'])
+  assert.deepEqual([...sw.stores.get('servicetrail-shell-test-build').keys()].sort(), ['/assets/application.css', '/assets/application.js', '/index.html'])
 })
