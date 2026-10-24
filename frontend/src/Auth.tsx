@@ -69,8 +69,6 @@ export default function Auth({ setup, sharedAvailable = false, onAuthenticated }
         {!setup && !reset && !registration && <button type="button" className="text-button" disabled={busy} onClick={startRegistration}>Create a new workspace</button>}
         {!setup && registration && <button type="button" className="text-button" disabled={busy} onClick={startSignIn}>Back to sign in</button>}
       </form>}
-      <p className="auth-note">Reports start with a worker’s observation, move through an independent review, and stay attached to the people and site that handled them.</p>
-      <div className="auth-footer-meta"><span>Record what the operator saw, capture the review decision, and verify the work before closing it.</span></div>
     </div></section>
   </main>
 }
